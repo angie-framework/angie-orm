@@ -1,7 +1,7 @@
 'use strict'; 'use strong';
 
 // import BaseDBConnection from './BaseDBConnection';
-// import $log from '../util/$LogProvider';
+// import $LogProvider from 'angie-log/src/services/$LogProvider';
 // import app from '../Angular';
 
 // const Firebase =        require('firebase');

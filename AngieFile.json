@@ -1,4 +1,6 @@
 {
     "projectName": "angie-orm",
-    "dependencies": []
+    "dependencies": [
+        "./node_modules/angie-log"
+    ]
 }

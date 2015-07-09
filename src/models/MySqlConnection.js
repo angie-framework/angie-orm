@@ -2,11 +2,19 @@
 
 // System Modules
 import mysql from                       'mysql';
+import $LogProvider from                'angie-log/src/services/$LogProvider';
 
 // Angie Modules
-import BaseDBConnection from            './BaseDBConnection';
-import {default as $Exceptions} from    '../util/$ExceptionsProvider';
-import $log from                        '../util/$LogProvider';
+import BaseDBConnection, {
+    $$DatabaseConnectivityError
+} from                                  './BaseDBConnection';
+
+// TODO import ORM Exceptions
+import {
+    $$InvalidDatabaseConfigError
+} from                                  '../util/$ExceptionsProvider';
+
+
 
 const DEFAULT_HOST = '127.0.0.1',
       DEFAULT_PORT = 3306;
@@ -18,7 +26,7 @@ export default class MySqlConnection extends BaseDBConnection {
         let db = this.database;
 
         if (!db.username) {
-            $Exceptions.$$invalidDatabaseConfig();
+            throw new $$InvalidDatabaseConfigError(db);
         } else if (!this.connection) {
             this.connection = mysql.createConnection({
                 host: db.host || DEFAULT_HOST,
@@ -30,7 +38,7 @@ export default class MySqlConnection extends BaseDBConnection {
 
             this.connection.on('error', function() {
                 if (db.options && db.options.hardErrors) {
-                    $Exceptions.$$databaseConnectivityError(db);
+                    throw new $$InvalidDatabaseConfigError(db);
                 }
             });
         }
@@ -59,9 +67,8 @@ export default class MySqlConnection extends BaseDBConnection {
         return new Promise(function() {
             me.connection.connect(arguments[0]);
         }).then(
-            () => $log.info('Connection successful'),
-            () =>
-                $Exceptions.$$databaseConnectivityError(me.database)
+            () => $LogProvider.info('Connection successful'),
+            () => throw new $$InvalidDatabaseConfigError(me.database);
         );
     }
     disconnect() {
@@ -77,12 +84,12 @@ export default class MySqlConnection extends BaseDBConnection {
             } catch(e) {}
         }).then(function() {
             return new Promise(function(resolve) {
-                $log.info(
+                $LogProvider.info(
                     `MySql Query: ${name}: ${query}`
                 );
                 return me.connection.query(query, function(e, rows = []) {
                     if (e) {
-                        $log.warn(e);
+                        $LogProvider.warn(e);
                     }
                     resolve([ rows, e ]);
                 });

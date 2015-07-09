@@ -1,40 +1,26 @@
 'use strict'; 'use strong';
 
 // System Modules
-import chalk from 'chalk';
+import {red, bold} from 'chalk';
 
-class $$ExceptionsProvider {
-    static $$databaseConnectivityError(database) {
-        let message;
-        switch (database.type) {
-            case 'mysql':
-                message = `Could not find MySql database ${database.name || database.alias}@` +
-                    `${database.host || '127.0.0.1'}:${database.port || 3306}`;
-                break;
-            default:
-                message = `Could not find ${database.name} in filesystem.`;
-        }
-        throw new Error($$err(message));
-    }
-    static $$databaseTableExists(e) {
-        throw new Error($$err(e));
-    }
-    static $$invalidDatabaseConfig() {
-        return this.$$invalidConfig('database');
-    }
-    static $$invalidModelReference() {
-        throw new Error(
-            $$err(`Invalid Model argument`)
-        );
-    }
-    static $$invalidModelFieldReference(name = '', field) {
-        throw new Error(
-            $$err(`Invalid param for Model ${name}@${field}`)
+export class $$InvalidConfigError extends Error {
+    constructor(name) {
+        super(
+            $$err(
+                `Invalid ${database} configuration settings. ` +
+                'Please check your AngieFile.'
+            )
         );
     }
 }
 
-export class $$InvalidModelConfig extends Error {
+export class $$InvalidDatabaseConfigError extends $$InvalidConfigError {
+    constructor() {
+        super('database');
+    }
+}
+
+export class $$InvalidModelConfigError extends Error {
     constructor(name) {
         super($$err(
             `Invalid Model configuration for model ${name} <-- ${name}Provider`
@@ -42,6 +28,18 @@ export class $$InvalidModelConfig extends Error {
     }
 }
 
+export class $$InvalidModelReferenceError extends Error {
+    constructor() {
+        super($$err('Invalid Model argument'));
+    }
+}
+
+export class $$InvalidModelFieldReferenceError extends Error {
+    constructor(name = '', field) {
+        super($$err(`Invalid param for Model ${name}@${field}`));
+    }
+}
+
 function $$err() {
-    return chalk.red(chalk.bold.apply(null, arguments));
+    return red(bold.apply(null, arguments));
 }

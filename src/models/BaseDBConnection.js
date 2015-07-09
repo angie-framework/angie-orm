@@ -1,12 +1,16 @@
 'use strict'; 'use strong';
 
-// Angie Modules
-import {prepApp} from                   '../Server';
-import app from                         '../Angular';
+// System Modules
+import util from                        'util';
+import $LogProvider from                'angie-log';
+
+// Angie ORM Modules
+// import {prepApp} from                   '../Server';
 import {AngieDBObject} from             './BaseModel';
-import util from                        '../util/util';
-import $log from                        '../util/$LogProvider';
-import {default as $Exceptions} from    '../util/$ExceptionsProvider';
+
+import {
+    $$InvalidModelReferenceError
+} from                                  '../util/$ExceptionsProvider';
 
 // Keys we do not necessarily want to parse as query arguments
 const IGNORE_KEYS = [
@@ -27,7 +31,7 @@ const IGNORE_KEYS = [
  * @since 0.2.3
  * @access private
  */
-export default class BaseDBConnection {
+class BaseDBConnection {
 
     /**
      * @param {object} database The database object to which the connection is
@@ -50,7 +54,7 @@ export default class BaseDBConnection {
     }
     all(args = {}, fetchQuery = '', filterQuery = '') {
         if (!args.model || !args.model.name) {
-            $Exceptions.$$invalidModelReference();
+            throw new $$InvalidModelReferenceError();
         }
 
         let values = '*';
@@ -134,7 +138,7 @@ export default class BaseDBConnection {
             values = [];
 
         if (!args.model || !args.model.name) {
-            $Exceptions.$$invalidModelReference();
+            throw new $$InvalidModelReferenceError();
         }
 
         keys.forEach(function(key) {
@@ -152,13 +156,13 @@ export default class BaseDBConnection {
     }
     update(args = {}) {
         if (!args.model || !args.model.name) {
-            $Exceptions.$$invalidModelReference();
+            throw new $$InvalidModelReferenceError();
         }
 
         let filterQuery = this._filterQuery(args),
             idSet = this._queryInString(args.rows, 'id');
         if (!filterQuery) {
-            $log.warn('No filter query in UPDATE statement.');
+            $LogProvider.warn('No filter query in UPDATE statement.');
         } else {
             return `UPDATE ${args.model.name} SET ${filterQuery} WHERE id in ${idSet};`;
         }
@@ -191,8 +195,8 @@ export default class BaseDBConnection {
 
         // Every instance of sync needs a registry of the models, which implies
         return prepApp().then(function() {
-            me._models = app.Models;
-            $log.info(
+            me._models = global.app.Models;
+            $LogProvider.info(
                 `Synccing database: ${me.database.name || me.database.alias}`
             );
         });
@@ -202,8 +206,8 @@ export default class BaseDBConnection {
 
         // Every instance of sync needs a registry of the models, which implies
         return prepApp().then(function() {
-            me._models = app.Models;
-            $log.info(
+            me._models = global.app.Models;
+            $LogProvider.info(
                 `Migrating database: ${me.database.name || me.database.alias}`
             );
         });
@@ -266,7 +270,7 @@ export default class BaseDBConnection {
 
             // Resolves to a value in the connections currently
             const queryset = new AngieDBObject(me, model, query);
-            return util.extend(
+            return util.inherits(
                 rows,
                 { errors: errors },
                 AngieDBObject.prototype,
@@ -275,3 +279,21 @@ export default class BaseDBConnection {
         });
     }
 }
+
+class $$DatabaseConnectivityError extends Error {
+    constructor(database) {
+        let message;
+        switch (database.type) {
+            case 'mysql':
+                message = `Could not find MySql database ${database.name || database.alias}@` +
+                    `${database.host || '127.0.0.1'}:${database.port || 3306}`;
+                break;
+            default:
+                message = `Could not find ${database.name} in filesystem.`;
+        }
+        super($$err(message));
+    }
+}
+
+export default BaseDBConnection;
+export $$DatabaseConnectivityError;

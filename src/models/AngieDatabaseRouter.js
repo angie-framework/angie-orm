@@ -1,20 +1,20 @@
 'use strict'; 'use strong';
 
-// Angie Modules
-import {config} from                    '../Config';
-import $cacheFactory from               '../services/$CacheFactory';
-import {default as $Exceptions} from    '../util/$ExceptionsProvider';
+// Angie ORM Modules
+import {
+    $$InvalidConfigException,
+    $$InvalidDatabaseConfigException
+} from                                  '../util/$ExceptionsProvider';
 import SqliteConnection from            './SqliteConnection';
 import MySqlConnection from             './MySqlConnection';
 
-config = config || global.ANGIE_DATABASE_CONFIG;
+let dbs = {};
 
 export default function AngieDatabaseRouter(args) {
-    let databases = new $cacheFactory('databases'),
-        database;
+    let database;
 
     if (!config) {
-        $Exceptions.$$configError();
+        throw new $$InvalidConfigError();
     }
 
     let name = 'default';
@@ -29,12 +29,12 @@ export default function AngieDatabaseRouter(args) {
     }
 
     // Check to see if the database is in memory
-    database = databases.get(name);
+    database = dbs[ name ];
     if (database) {
         return database;
     }
 
-    let db = config.databases ? config.databases[name] : undefined,
+    let db = config.databases ? config.databases[ name ] : undefined,
         destructive = process.argv.indexOf('--destructive') > -1;
 
     if (db && db.type) {
@@ -57,10 +57,9 @@ export default function AngieDatabaseRouter(args) {
         }
     }
     if (!database) {
-        $Exceptions.$$invalidDatabaseConfig();
+        throw new $$InvalidDatabaseConfigError();
     }
 
     // Setup a cache of database connections in memory already
-    databases.put(name, database);
-    return database;
+    return (dbs[ name ] = database);
 }

@@ -1,6 +1,7 @@
 'use strict'; 'use strong';
 
-import util from '../util/util';
+// System Modules
+import util from    'util';
 
 class BaseField {
     constructor(
@@ -13,7 +14,7 @@ class BaseField {
     ) {
         this.type = 'BaseField';
         if (typeof args === 'object') {
-            util.extend(this, arguments[0]);
+            util.inherits(this, arguments[0]);
         } else if (!isNaN(args)) {
             if (args === 1) {
                 return;

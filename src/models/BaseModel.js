@@ -1,9 +1,13 @@
 'use strict'; 'use strong';
 
+// System Modules
+import util from                        'util';
+
 // Angie Modules
 import AngieDatabaseRouter from         './AngieDatabaseRouter';
-import util from                        '../util/util';
-import {default as $Exceptions} from    '../util/$ExceptionsProvider';
+import {
+    $$InvalidModelFieldReferenceError
+} from                                  '../util/$ExceptionsProvider';
 
 const IGNORE_KEYS = [
     'database',
@@ -68,7 +72,7 @@ export class BaseModel {
             ) {
                 createObj[field] = val;
             } else {
-                $Exceptions.$$invalidModelFieldReference(me.name, field);
+                throw new $$InvalidModelFieldReference(me.name, field);
             }
         });
 
@@ -151,11 +155,11 @@ AngieDBObject.prototype.update = function() {
         ) {
             updateObj[ key ] = val;
         } else {
-            $Exceptions.$$invalidModelFieldReference(this.name, key);
+            throw new $$InvalidModelFieldReferenceError(this.name, key);
         }
     }
 
-    util.extend(args, updateObj);
+    util.inherits(args, updateObj);
     return this.database.update(args);
 };
 

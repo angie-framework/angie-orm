@@ -55,7 +55,7 @@ gulp.task('mocha', function(cb) {
             ).pipe(mocha({
                 reporter: 'spec'
             }).on('error', function(e) {
-                console.log(chalk.bold(e));
+                $LogProvider.error(e);
                 resolve();
             }).on('end', function() {
                 resolve();

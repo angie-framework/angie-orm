@@ -3,11 +3,15 @@
 // System Modules
 import fs from                          'fs';
 import {verbose} from                   'sqlite3';
+import $LogProvider from                'angie-log';
 
 // Angie Modules
-import BaseDBConnection from            './BaseDBConnection';
-import $log from                        '../util/$LogProvider';
-import {default as $Exceptions} from    '../util/$ExceptionsProvider';
+import BaseDBConnection, {
+    $$DatabaseConnectivityError
+} from                                  './BaseDBConnection';
+import {
+    $$InvalidDatabaseConfigError
+} from                                  '../util/$ExceptionsProvider';
 
 const sqlite3 = verbose();
 
@@ -17,7 +21,7 @@ export default class SqliteConnection extends BaseDBConnection {
 
         let db = this.database;
         if (!db.name) {
-            $Exceptions.$$invalidDatabaseConfig();
+            throw new $$InvalidDatabaseConfigError();
         }
     }
     types(field) {
@@ -43,9 +47,9 @@ export default class SqliteConnection extends BaseDBConnection {
         if (!this.connection) {
             try {
                 this.connection = new sqlite3.Database(db.name);
-                $log.info('Connection successful');
+                $LogProvider.info('Connection successful');
             } catch(err) {
-                $Exceptions.$$databaseConnectivityError(db);
+                throw new $$DatabaseConnectivityError(db);
             }
         }
         return this.connection;
@@ -62,13 +66,13 @@ export default class SqliteConnection extends BaseDBConnection {
             db = this.database,
             name = db.name || db.alias;
         return new Promise(function(resolve) {
-            $log.info(`Sqlite3 Query: ${name}: ${query}`);
+            $LogProvider.info(`Sqlite3 Query: ${name}: ${query}`);
             return me.serialize(resolve);
         }).then(function() {
             return new Promise(function(resolve) {
                 me.connection[ key ](query, function(e, rows = []) {
                     if (e) {
-                        $log.warn(e);
+                        $LogProvider.warn(e);
                     }
                     resolve([ rows, e ]);
                 });

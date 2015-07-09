@@ -2,7 +2,7 @@
 *Note: This project is in Beta.*
 
 <!-- TODO add badges -->
-<!-- ![build status](https://travis-ci.org/benderTheCrime/angie-orm.svg?branch=debug-travis "build status")
+<!-- ![build status](https://travis-ci.org/benderTheCrime/angie-orm.svg?branch=master "build status")
 ![iojs support](https://img.shields.io/badge/iojs-1.7.1+-brightgreen.svg "iojs support")
 ![node support](https://img.shields.io/badge/node-0.12.0+-brightgreen.svg "node support")
 ![code coverage](https://rawgit.com/benderTheCrime/angie-orm/master/svg/coverage.svg "code coverage")
