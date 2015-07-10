@@ -296,4 +296,4 @@ class $$DatabaseConnectivityError extends Error {
 }
 
 export default BaseDBConnection;
-export $$DatabaseConnectivityError;
+export {$$DatabaseConnectivityError};

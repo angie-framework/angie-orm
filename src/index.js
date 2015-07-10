@@ -6,6 +6,8 @@ import {transform} from             'babel';
 // System Modules
 import {exec} from                  'child_process';
 import util from                    'util';
+import {gray} from                  'chalk';
+import $LogProvider from            'angie-log';
 
 // Angie-ORM Modules
 import {BaseModel} from             './models/BaseModel';
@@ -31,7 +33,13 @@ p.argv.forEach(function(v) {
 // Grab the instantiated Angie app, or use an empty object. We can still
 // use this to sync database
 let app = global.app || {
-    _registry: {},
+    $fields: $$FieldProvider,
+    services: {
+        $fields: $$FieldProvider
+    },
+    _registry: {
+        fields: 'services'
+    },
     _register: function _register(c, name, obj) {
 
         // `component` and `app.component` should always be defined
@@ -61,10 +69,13 @@ app.Model = function Model(name, obj = {}) {
     return this._register('Models', name, instance);
 };
 
-app.service('$fields', $$FieldProvider);
+// Assign the $$FieldProvider service if the app.service function exists
+if (typeof app.service === 'function') {
+    app.service('$fields', $$FieldProvider);
+}
 
 // Route the CLI request to a specific command if running from CLI
-if (!module.parent) {
+if (module.parent) {
     switch ((args[0] || '').toLowerCase()) {
         case 'syncdb':
             AngieDatabaseRouter().then((db) => db.sync());
@@ -85,9 +96,9 @@ function runTests() {
     // TODO is there any way to carry the stream output from gulp instead
     // of capturing stdout?
     exec(`cd ${__dirname} && gulp`, function(e, std, err) {
-        $log.log(std);
+        $LogProvider.info(std);
         if (err) {
-            $log.error(err);
+            $LogProvider.error(err);
         }
         if (e) {
             throw new Error(e);
@@ -96,30 +107,30 @@ function runTests() {
 }
 
 function help() {
-    console.log(chalk.bold('Angie ORM'));
+    $LogProvider.bold('Angie ORM');
     console.log('A flexible, Promise-based ORM for the Angie MVC');
     console.log('\r');
-    console.log(chalk.bold('Version:'));
+    $LogProvider.bold('Version:');
     console.log(global.ANGIE_ORM_VERSION);
     console.log('\r');
-    console.log(chalk.bold('Commands:'));
+    $LogProvider.bold('Commands:');
     console.log(
         'syncdb [ database ]                                ' +
-        chalk.gray(
+        gray(
             'Sync the current specified databases in the AngieFile. ' +
             'Defaults to the default created database'
         )
     );
     console.log(
         'migrations [ --destructive -- optional ]           ' +
-        chalk.gray(
+        gray(
             'Checks to see if the database and the specified ' +
             'models are out of sync. Generates NO files.'
         )
     );
     console.log(
         'test                                               ' +
-        chalk.gray(
+        gray(
             'Runs the Angie test suite and prints the results in the ' +
             'console'
         )

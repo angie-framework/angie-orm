@@ -8,7 +8,7 @@
   "private": false,
   "preferGlobal": true,
   "scripts": {
-    "start": "angie-orm",
+    "start": "node src/index.js",
     "test": "gulp",
     "publish": "gulp"
   },
@@ -38,6 +38,7 @@
     "Database"
   ],
   "devDependencies": {
+    "angie-log": "0.0.2",
     "babel-eslint": "3.1.17",
     "chai": "2.3.0",
     "connect": "2.x.x",

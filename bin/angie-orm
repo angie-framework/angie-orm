@@ -3,5 +3,7 @@
 // TODO check to see that the most up to date version is installed
 global.ANGIE_ORM_VERSION = '0.0.1';
 
-require('babel/register');
+console.log('here');
+
+//require('babel/register');
 require('../src/index');
