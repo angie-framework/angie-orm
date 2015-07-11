@@ -9,7 +9,7 @@ class $$InvalidConfigError extends Error {
     constructor(name) {
         super(
             bread(
-                `Invalid ${database} configuration settings. ` +
+                `Invalid ${name} configuration settings. ` +
                 'Please check your AngieFile.'
             )
         );

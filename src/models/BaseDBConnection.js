@@ -5,7 +5,6 @@ import util from                        'util';
 import $LogProvider from                'angie-log';
 
 // Angie ORM Modules
-// import {prepApp} from                   '../Server';
 import {AngieDBObject} from             './BaseModel';
 
 import {
@@ -13,14 +12,15 @@ import {
 } from                                  '../util/$ExceptionsProvider';
 
 // Keys we do not necessarily want to parse as query arguments
-const IGNORE_KEYS = [
-    'database',
-    'tail',
-    'head',
-    'rows',
-    'values',
-    'model'
-];
+const app = global.app,
+      IGNORE_KEYS = [
+          'database',
+          'tail',
+          'head',
+          'rows',
+          'values',
+          'model'
+      ];
 
 /**
  * @desc BaseDBConnection is a private class which is not exposed to the Angie

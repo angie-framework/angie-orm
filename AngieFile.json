@@ -1,6 +1,6 @@
 {
-    "projectName": "angie-orm",
+    "projectName": "$ModelProvider",
     "dependencies": [
-        "./node_modules/angie-log"
+        "angie-log"
     ]
 }

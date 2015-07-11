@@ -18,7 +18,7 @@
     "node": "*"
   },
   "bin": {
-    "angie": "bin/angie-orm"
+    "angie-orm": "bin/angie-orm"
   },
   "repository": {
     "type": "git",
@@ -38,7 +38,6 @@
     "Database"
   ],
   "devDependencies": {
-    "angie-log": "0.0.2",
     "babel-eslint": "3.1.17",
     "chai": "2.3.0",
     "connect": "2.x.x",

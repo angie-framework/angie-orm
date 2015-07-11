@@ -1,6 +1,7 @@
 'use strict'; 'use strong';
 
 // Global Modules
+import fs from                      'fs';
 import {transform} from             'babel';
 
 // System Modules
@@ -9,7 +10,7 @@ import util from                    'util';
 import {gray} from                  'chalk';
 import $LogProvider from            'angie-log';
 
-// Angie-ORM Modules
+// Angie ORM Modules
 import {BaseModel} from             './models/BaseModel';
 import AngieDatabaseRouter from     './models/AngieDatabaseRouter';
 import * as $$FieldProvider from    './models/Fields';
@@ -25,34 +26,68 @@ let args = [];
 
 // Remove trivial arguments
 p.argv.forEach(function(v) {
-    if (!v.match(/(node|iojs|index|angie-orm)/)) {
+    if (!v.match(/(node|iojs|index|angie(-orm)?)/)) {
         args.push(v);
     }
 });
 
-// Grab the instantiated Angie app, or use an empty object. We can still
-// use this to sync database
-let app = global.app || {
-    $fields: $$FieldProvider,
-    services: {
-        $fields: $$FieldProvider
-    },
-    _registry: {
-        fields: 'services'
-    },
-    _register: function _register(c, name, obj) {
+// Setup the app or inherit the app from the `global` Namespace
+let app;
+if (global.app) {
+    app = global.app;
+} else {
+    app = global.app = {
+        services: {},
+        $$registry: {},
+        $$register(c, name, obj) {
 
-        // `component` and `app.component` should always be defined
-        if (name && obj) {
-            this._registry[ name ] = 'Models';
-            this.Models[ name ] = obj;
-        } else {
-            console.warn('Invalid name or object called on app._register');
+            // `component` and `app.component` should always be defined
+            if (name && obj) {
+                this.$registry[ name ] = 'Models';
+                this.Models[ name ] = obj;
+            } else {
+                console.warn('Invalid name or object called on app.$register');
+            }
+            return this;
+        },
+        $$load() {
+            let files = [];
+
+            // Find ALL the files
+            try {
+                files.concat(fs.readdirSync(`${p.cwd()}/src`).map((v) => {
+                    return `${p.cwd()}/src/${v}`
+                }));
+            } catch(e) {}
+            try {
+                files.concat(fs.readdirSync(`${p.cwd()}/src/Models`).map((v) => {
+                    return `${p.cwd()}/src/Models/${v}`
+                }));
+            } catch(e) {}
+            try {
+                files.concat(fs.readdirSync(`${p.cwd()}/src/models`).map((v) => {
+                    return `${p.cwd()}/src/models/${v}`
+                }));
+            } catch(e) {}
+
+            // Make sure the files are js/es6 files, then try to load them
+            files.filter(
+                (v) => [ 'js', 'es6' ].indexOf(v.split('.').pop())
+            ).forEach(function(v) {
+                try {
+                    require(v);
+                    $LogProvider.info(`Successfully loaded file ${v}`);
+                } catch(e) {
+                    $LogProvider.error(e);
+                }
+            });
         }
-        return this;
-    }
-};
+    };
+    app.$Fields = $$FieldProvider;
+}
 
+app.services.$Fields = $$FieldProvider;
+app.$$registry.$Fields = 'services';
 app.Models = {};
 app.Model = function Model(name, obj = {}) {
     const model = new $injectionBinder(obj)();
@@ -66,22 +101,25 @@ app.Model = function Model(name, obj = {}) {
     } else {
         throw new $$InvalidModelConfigError(name);
     }
-    return this._register('Models', name, instance);
+    return this.$register('Models', name, instance);
 };
 
-// Assign the $$FieldProvider service if the app.service function exists
-if (typeof app.service === 'function') {
-    app.service('$fields', $$FieldProvider);
-}
+console.log(global.app);
 
 // Route the CLI request to a specific command if running from CLI
-if (module.parent) {
+if (
+    args.length &&
+    args.some((v) => [ 'help', 'syncdb', 'migrate', 'test' ].indexOf(v) > -1)
+) {
     switch ((args[0] || '').toLowerCase()) {
+        case 'help':
+            help();
+            break;
         case 'syncdb':
-            AngieDatabaseRouter().then((db) => db.sync());
+            AngieDatabaseRouter().sync();
             break;
         case 'migrate':
-            AngieDatabaseRouter().then((db) => db.migrate());
+            AngieDatabaseRouter().migrate();
             break;
         case 'test':
             runTests();
@@ -89,6 +127,7 @@ if (module.parent) {
         default:
             help();
     }
+    p.exit(0);
 }
 
 function runTests() {
@@ -137,3 +176,7 @@ function help() {
     );
     p.exit(0);
 }
+
+// TODO do we even need this?
+// console.log($$FieldProvider);
+// export {$$FieldProvider as $Fields};
