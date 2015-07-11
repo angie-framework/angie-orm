@@ -84,13 +84,30 @@ if (global.app) {
         }
     };
     app.$Fields = $$FieldProvider;
+    app.services.$Log = $LogProvider;
+    app.$$registry.$Log = 'services';
 }
 
 app.services.$Fields = $$FieldProvider;
 app.$$registry.$Fields = 'services';
 app.Models = {};
+
+/**
+ * @desc Creates an Angie ORM Model provider. The second parameter
+ * of the Model function must be an object or a function/class which returns an
+ * object, with properties defining the Model itself (name, fields, etc). Note
+ * that the first bound paramter to the second argument will always be $Fields
+ * if the second argument is a function.
+ * @since 0.0.1
+ * @access public
+ * @param {string} name The name of the constant being created
+ * @param {function|object} obj The Model value, returns Models params.
+ */
 app.Model = function Model(name, obj = {}) {
-    const model = new $injectionBinder(obj)();
+    const model = typeof obj === 'function' ?
+        new $injectionBinder(obj.bind(null, $$FieldProvider))() :
+            typofobj === 'object' ? obj : undefined;
+
     name = typeof name === 'string' ? name : model.name;
 
     let instance = new BaseModel(name);
@@ -103,8 +120,6 @@ app.Model = function Model(name, obj = {}) {
     }
     return this.$register('Models', name, instance);
 };
-
-console.log(global.app);
 
 // Route the CLI request to a specific command if running from CLI
 if (
