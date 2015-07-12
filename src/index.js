@@ -8,6 +8,7 @@ import {transform} from             'babel';
 import {exec} from                  'child_process';
 import util from                    'util';
 import {gray} from                  'chalk';
+import {$injectionBinder} from      'angie-injector';
 import $LogProvider from            'angie-log';
 
 // Angie ORM Modules
@@ -28,6 +29,8 @@ let args = [];
 p.argv.forEach(function(v) {
     if (!v.match(/(node|iojs|index|angie(-orm)?)/)) {
         args.push(v);
+    } else if (v === 'help') {
+        help();
     }
 });
 
@@ -43,43 +46,49 @@ if (global.app) {
 
             // `component` and `app.component` should always be defined
             if (name && obj) {
-                this.$registry[ name ] = 'Models';
+                this.$$registry[ name ] = 'Models';
                 this.Models[ name ] = obj;
             } else {
-                console.warn('Invalid name or object called on app.$register');
+                $LogProvider.warn('Invalid name or object called on app.$register');
             }
             return this;
         },
         $$load() {
-            let files = [];
+            return new Promise(function(resolve) {
+                let files = [];
 
-            // Find ALL the files
-            try {
-                files.concat(fs.readdirSync(`${p.cwd()}/src`).map((v) => {
-                    return `${p.cwd()}/src/${v}`
-                }));
-            } catch(e) {}
-            try {
-                files.concat(fs.readdirSync(`${p.cwd()}/src/Models`).map((v) => {
-                    return `${p.cwd()}/src/Models/${v}`
-                }));
-            } catch(e) {}
-            try {
-                files.concat(fs.readdirSync(`${p.cwd()}/src/models`).map((v) => {
-                    return `${p.cwd()}/src/models/${v}`
-                }));
-            } catch(e) {}
-
-            // Make sure the files are js/es6 files, then try to load them
-            files.filter(
-                (v) => [ 'js', 'es6' ].indexOf(v.split('.').pop())
-            ).forEach(function(v) {
+                // Find ALL the files
                 try {
-                    require(v);
-                    $LogProvider.info(`Successfully loaded file ${v}`);
-                } catch(e) {
-                    $LogProvider.error(e);
-                }
+
+                    files = files.concat(fs.readdirSync(
+                        `${p.cwd()}/src`
+                    ).map((v) => `${p.cwd()}/src/${v}`));
+                } catch(e) {}
+                try {
+                    files = files.concat(fs.readdirSync(
+                        `${p.cwd()}/src/Models`
+                    ).map((v) => `${p.cwd()}/src/Models/${v}`));
+                } catch(e) {}
+                try {
+                    files = files.concat(fs.readdirSync(
+                        `${p.cwd()}/src/models`
+                    ).map((v) => `${p.cwd()}/src/models/${v}`));
+                } catch(e) {}
+
+                // Make sure the files are js/es6 files, then try to load them
+                files.filter(
+                    (v) => [ 'js', 'es6' ].indexOf(v.split('.').pop()) > -1
+                ).forEach(function(v) {
+                    console.log(v);
+                    try {
+                        require(v);
+                        $LogProvider.info(`Successfully loaded file ${v}`);
+                    } catch(e) {
+                        $LogProvider.error(e);
+                    }
+                });
+                console.log('calling resolve');
+                resolve();
             });
         }
     };
@@ -106,7 +115,7 @@ app.Models = {};
 app.Model = function Model(name, obj = {}) {
     const model = typeof obj === 'function' ?
         new $injectionBinder(obj.bind(null, $$FieldProvider))() :
-            typofobj === 'object' ? obj : undefined;
+            typeof obj === 'object' ? obj : undefined;
 
     name = typeof name === 'string' ? name : model.name;
 
@@ -114,33 +123,28 @@ app.Model = function Model(name, obj = {}) {
 
     // Mock extend obj onto the instance
     if (typeof model === 'object') {
-        instance = util.inherits(instance, model);
+        console.log(instance, model);
+        instance = util._extend(instance, model);
     } else {
         throw new $$InvalidModelConfigError(name);
     }
-    return this.$register('Models', name, instance);
+    return this.$$register('Models', name, instance);
 };
 
 // Route the CLI request to a specific command if running from CLI
 if (
     args.length &&
-    args.some((v) => [ 'help', 'syncdb', 'migrate', 'test' ].indexOf(v) > -1)
+    args.some((v) => [ 'syncdb', 'migrate', 'test' ].indexOf(v) > -1)
 ) {
     switch ((args[0] || '').toLowerCase()) {
-        case 'help':
-            help();
-            break;
         case 'syncdb':
             AngieDatabaseRouter().sync();
             break;
         case 'migrate':
             AngieDatabaseRouter().migrate();
             break;
-        case 'test':
-            runTests();
-            break;
         default:
-            help();
+            runTests();
     }
     p.exit(0);
 }

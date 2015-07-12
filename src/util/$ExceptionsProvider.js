@@ -22,7 +22,7 @@ class $$InvalidDatabaseConfigError extends $$InvalidConfigError {
     }
 }
 
-class $$InvalidModelConfigError extends Error {
+class $$InvalidModelConfigError extends TypeError {
     constructor(name) {
         super(bread(
             'Invalid Model configuration for model ' +

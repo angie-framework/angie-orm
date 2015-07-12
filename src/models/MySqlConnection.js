@@ -95,7 +95,7 @@ export default class MySqlConnection extends BaseDBConnection {
                 });
             });
         }).then(function(args) {
-            return me._querySet(model, query, args[0], args[1]);
+            return me.$$querySet(model, query, args[0], args[1]);
         });
     }
     all() {

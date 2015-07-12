@@ -127,7 +127,7 @@ class BaseDBConnection {
             if (typeof args[ key ] !== 'object') {
                 filterQuery.push(fn(key, args[ key ]));
             } else {
-                filterQuery.push(`${key} in ${this._queryInString(args[ key ])}`);
+                filterQuery.push(`${key} in ${this.$$queryInString(args[ key ])}`);
             }
         }
         return filterQuery.length ? `${filterQuery.join(' AND ')}` : '';
@@ -160,7 +160,7 @@ class BaseDBConnection {
         }
 
         let filterQuery = this._filterQuery(args),
-            idSet = this._queryInString(args.rows, 'id');
+            idSet = this.$$queryInString(args.rows, 'id');
         if (!filterQuery) {
             $LogProvider.warn('No filter query in UPDATE statement.');
         } else {
@@ -169,7 +169,7 @@ class BaseDBConnection {
     }
 
     /**
-     * @desc _queryInString builds any "in" query statements in the query
+     * @desc $$queryInString builds any "in" query statements in the query
      * arguments
      * @since 0.2.2
      * @param {object} args Object representation of the arguments
@@ -179,7 +179,7 @@ class BaseDBConnection {
      * @returns {string} A query string to be passed to the performed query
      * @access private
      */
-    _queryInString(args = {}, key) {
+    $$queryInString(args = {}, key) {
         let fieldSet = [];
         if (key) {
             args.forEach(function(row) {
@@ -193,8 +193,12 @@ class BaseDBConnection {
     sync() {
         let me = this;
 
+        console.log('in');
+
         // Every instance of sync needs a registry of the models, which implies
-        return prepApp().then(function() {
+        return global.app.$$load().then(function() {
+            console.log('in');
+
             me._models = global.app.Models;
             $LogProvider.info(
                 `Synccing database: ${me.database.name || me.database.alias}`
@@ -205,14 +209,14 @@ class BaseDBConnection {
         let me = this;
 
         // Every instance of sync needs a registry of the models, which implies
-        return prepApp().then(function() {
+        return global.app.$$load().then(function() {
             me._models = global.app.Models;
             $LogProvider.info(
                 `Migrating database: ${me.database.name || me.database.alias}`
             );
         });
     }
-    _querySet(model, query, rows, errors) {
+    $$querySet(model, query, rows, errors) {
         let me = this,
             rels = [],
             relFieldNames = {},
@@ -229,7 +233,7 @@ class BaseDBConnection {
                 if (field && field.nesting === true) {
                     rels.push(field.rel);
                     relFieldNames[ field.rel ] = key;
-                    relArgs[ field.rel ] = me._queryInString(rows, 'id');
+                    relArgs[ field.rel ] = me.$$queryInString(rows, 'id');
                 }
             }
         });

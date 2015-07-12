@@ -83,8 +83,6 @@ function AngieDatabaseRouter(args) {
         throw new $$InvalidDatabaseConfigError();
     }
 
-    console.log(database);
-
     // Setup a cache of database connections in memory already
     return (dbs[ name ] = database);
 }
