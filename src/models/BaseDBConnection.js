@@ -193,11 +193,13 @@ class BaseDBConnection {
     sync() {
         let me = this;
 
-        console.log('in');
+        // console.log('Started sync');
+        // console.log(this);
+        // console.log(global.app.$$load().then);
 
         // Every instance of sync needs a registry of the models, which implies
         return global.app.$$load().then(function() {
-            console.log('in');
+            console.log('in', global.app.Models);
 
             me._models = global.app.Models;
             $LogProvider.info(

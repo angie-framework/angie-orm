@@ -21,26 +21,25 @@ function AngieDatabaseRouter(args) {
     let database,
         name = 'default';
 
-    if (!config && !app.$$config) {
+    if (!config && !global.app.$$config) {
         try {
             const $$config = JSON.parse(
                 fs.readFileSync(`${process.cwd()}/AngieORMFile.json`)
             );
 
             if (typeof $$config === 'object') {
-                app.$$config = $$config;
+                global.app.$$config = $$config;
                 Object.freeze(app.$$config);
             } else {
                 throw new Error();
             }
         } catch(e) {
-            console.log(e);
             throw new $$InvalidConfigError();
         }
-        config = app.$$config;
     }
+    config = global.app.$$config;
 
-    if (typeof args === 'object' && args.length) {
+    if (args instanceof Array) {
         args.forEach(function(arg) {
             if (Object.keys(config.databases || {}).indexOf(args[1]) > -1) {
                 name = arg;
@@ -53,7 +52,6 @@ function AngieDatabaseRouter(args) {
     // Check to see if the database is in memory
     database = dbs[ name ];
     if (database) {
-        console.log(database);
         return database;
     }
 
@@ -79,6 +77,7 @@ function AngieDatabaseRouter(args) {
                 database = new SqliteConnection(db, destructive);
         }
     }
+
     if (!database) {
         throw new $$InvalidDatabaseConfigError();
     }

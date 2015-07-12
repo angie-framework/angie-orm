@@ -13,7 +13,8 @@ import {
     $$InvalidDatabaseConfigError
 } from                                  '../util/$ExceptionsProvider';
 
-const sqlite3 = verbose();
+const p = process,
+      sqlite3 = verbose();
 
 export default class SqliteConnection extends BaseDBConnection {
     constructor(database, destructive) {
@@ -132,6 +133,7 @@ export default class SqliteConnection extends BaseDBConnection {
                 ));
             }
             return Promise.all(proms).then(function() {
+                console.log('test');
                 return me.migrate();
             }).then(function() {
                 return me.disconnect();
@@ -141,9 +143,13 @@ export default class SqliteConnection extends BaseDBConnection {
     migrate() {
         let me = this;
 
+        console.log('in migrate');
+
         super.migrate().then(function() {
             let models = me.models(),
                 proms = [];
+
+            console.log('migratin');
 
             for (let model in models) {
                 let instance = models[ model ],
@@ -165,7 +171,7 @@ export default class SqliteConnection extends BaseDBConnection {
                 }
             }
             return Promise.all(proms);
-        });
+        }).then(p.exit.bind(null, 0));
     }
 }
 

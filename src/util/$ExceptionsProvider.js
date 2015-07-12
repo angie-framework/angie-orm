@@ -5,7 +5,7 @@ import {red, bold, magenta} from 'chalk';
 
 const bread = () => red(bold.apply(null, arguments));
 
-class $$InvalidConfigError extends Error {
+class $$InvalidConfigError extends ReferenceError {
     constructor(name) {
         super(
             bread(

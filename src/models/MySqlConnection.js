@@ -16,7 +16,8 @@ import {
 
 
 
-const DEFAULT_HOST = '127.0.0.1',
+const p = process,
+      DEFAULT_HOST = '127.0.0.1',
       DEFAULT_PORT = 3306;
 
 export default class MySqlConnection extends BaseDBConnection {
@@ -181,6 +182,6 @@ export default class MySqlConnection extends BaseDBConnection {
                     }
                 }
                 return Promise.all(proms);
-            });
+            }).then(p.exit.bind(null, 0));
     }
 }
