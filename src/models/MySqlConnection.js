@@ -2,6 +2,7 @@
 
 // System Modules
 import mysql from                       'mysql';
+import {cyan, magenta} from             'chalk';
 import $LogProvider from                'angie-log';
 
 // Angie Modules
@@ -86,7 +87,7 @@ export default class MySqlConnection extends BaseDBConnection {
         }).then(function() {
             return new Promise(function(resolve) {
                 $LogProvider.info(
-                    `MySql Query: ${name}: ${query}`
+                    `MySql Query: ${cyan(name)}: ${magenta(query)}`
                 );
                 return me.connection.query(query, function(e, rows = []) {
                     if (e) {
@@ -96,6 +97,7 @@ export default class MySqlConnection extends BaseDBConnection {
                 });
             });
         }).then(function(args) {
+            console.log('Im trying to print a query set');
             return me.$$querySet(model, query, args[0], args[1]);
         });
     }
@@ -144,6 +146,7 @@ export default class MySqlConnection extends BaseDBConnection {
                     ));
                 }
                 return Promise.all(proms).then(function() {
+                    console.log('In migrate');
                     return me.migrate();
                 }).then(function() {
                     return me.disconnect();

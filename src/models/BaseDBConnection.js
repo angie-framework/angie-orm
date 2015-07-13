@@ -2,6 +2,7 @@
 
 // System Modules
 import util from                        'util';
+import {cyan} from                      'chalk';
 import $LogProvider from                'angie-log';
 
 // Angie ORM Modules
@@ -42,7 +43,7 @@ class BaseDBConnection {
         this.database = database;
         this.destructive = destructive;
     }
-    name (modelName) {
+    name(modelName) {
         modelName = modelName.replace(/([A-Z])/g, '_$1').toLowerCase();
         if (modelName.charAt(0) === '_') {
             modelName = modelName.slice(1, modelName.length);
@@ -82,7 +83,7 @@ class BaseDBConnection {
         return this.all(args, fetchQuery, filterQuery);
     }
     filter(args = {}) {
-        return this.fetch(args, this._filterQuery(args));
+        return this.fetch(args, this.$$filterQuery(args));
     }
 
     /**
@@ -97,7 +98,7 @@ class BaseDBConnection {
      * @returns {string} A query string to be passed to the performed query
      * @access private
      */
-    _filterQuery(args) {
+    $$filterQuery(args) {
         let filterQuery = [],
             fn = function(k, v) {
 
@@ -152,14 +153,14 @@ class BaseDBConnection {
             `VALUES (${values.join(', ')});`;
     }
     delete(args = {}) {
-        return `DELETE FROM ${args.model.name} ${this._filterQuery(args)};`;
+        return `DELETE FROM ${args.model.name} ${this.$$filterQuery(args)};`;
     }
     update(args = {}) {
         if (!args.model || !args.model.name) {
             throw new $$InvalidModelReferenceError();
         }
 
-        let filterQuery = this._filterQuery(args),
+        let filterQuery = this.$$filterQuery(args),
             idSet = this.$$queryInString(args.rows, 'id');
         if (!filterQuery) {
             $LogProvider.warn('No filter query in UPDATE statement.');
@@ -193,17 +194,13 @@ class BaseDBConnection {
     sync() {
         let me = this;
 
-        // console.log('Started sync');
-        // console.log(this);
-        // console.log(global.app.$$load().then);
-
         // Every instance of sync needs a registry of the models, which implies
         return global.app.$$load().then(function() {
             console.log('in', global.app.Models);
 
             me._models = global.app.Models;
             $LogProvider.info(
-                `Synccing database: ${me.database.name || me.database.alias}`
+                `Synccing database: ${cyan(me.database.name || me.database.alias)}`
             );
         });
     }
@@ -214,7 +211,7 @@ class BaseDBConnection {
         return global.app.$$load().then(function() {
             me._models = global.app.Models;
             $LogProvider.info(
-                `Migrating database: ${me.database.name || me.database.alias}`
+                `Migrating database: ${cyan(me.database.name || me.database.alias)}`
             );
         });
     }
@@ -239,6 +236,8 @@ class BaseDBConnection {
                 }
             }
         });
+
+        console.log('ROWS', rows);
 
         // Instantiate a promise for each of the foreign key fields in the
         // query
@@ -276,7 +275,7 @@ class BaseDBConnection {
 
             // Resolves to a value in the connections currently
             const queryset = new AngieDBObject(me, model, query);
-            return util.inherits(
+            return util._extend(
                 rows,
                 { errors: errors },
                 AngieDBObject.prototype,
@@ -291,11 +290,12 @@ class $$DatabaseConnectivityError extends Error {
         let message;
         switch (database.type) {
             case 'mysql':
-                message = `Could not find MySql database ${database.name || database.alias}@` +
+                message = 'Could not find MySql database ' +
+                    `${cyan(database.name || database.alias)}@` +
                     `${database.host || '127.0.0.1'}:${database.port || 3306}`;
                 break;
             default:
-                message = `Could not find ${database.name} in filesystem.`;
+                message = `Could not find ${cyan(database.name)} in filesystem.`;
         }
         super($$err(message));
     }

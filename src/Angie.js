@@ -2,13 +2,18 @@
 
 // System Modules
 import fs from                      'fs';
+import util from                    'util';
+import {blue} from                  'chalk';
+import {$injectionBinder} from      'angie-injector';
 import $LogProvider from            'angie-log';
 
 // Angie ORM Modules
+import {BaseModel} from             './models/BaseModel';
 import * as $$FieldProvider from    './models/Fields';
 
 
 // Setup the app or inherit the app from the `global` Namespace
+const p = process;
 let app;
 
 if (global.app) {
@@ -24,7 +29,9 @@ if (global.app) {
                 this.$$registry[ name ] = 'Models';
                 this.Models[ name ] = obj;
             } else {
-                $LogProvider.warn('Invalid name or object called on app.$register');
+                $LogProvider.warn(
+                    'Invalid name or object called on app.$register'
+                );
             }
             return this;
         },
@@ -41,7 +48,6 @@ if (global.app) {
 
                 // Find ALL the files
                 try {
-
                     files = files.concat(fs.readdirSync(
                         `${p.cwd()}/src`
                     ).map((v) => `${p.cwd()}/src/${v}`));
@@ -63,7 +69,7 @@ if (global.app) {
                 ).forEach(function(v) {
                     try {
                         require(v);
-                        $LogProvider.info(`Successfully loaded file ${v}`);
+                        $LogProvider.info(`Successfully loaded file ${blue(v)}`);
                     } catch(e) {
                         $LogProvider.error(e);
                     }
@@ -105,6 +111,8 @@ app.Model = function Model(name, obj = {}) {
 
     let instance = new BaseModel(name);
 
+    console.log('HERE', instance);
+
     // Mock extend obj onto the instance
     if (typeof model === 'object') {
         console.log(instance, model);
@@ -112,5 +120,7 @@ app.Model = function Model(name, obj = {}) {
     } else {
         throw new $$InvalidModelConfigError(name);
     }
-    return this.$$register('Models', name, instance);
+    //return this.$$register('Models', name, instance);
+    this.$$register('Models', name, instance);
+    console.log('THIS', this);
 };

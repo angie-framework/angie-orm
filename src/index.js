@@ -17,7 +17,6 @@ console.log('HERE');
 import './Angie';
 
 // Angie ORM Modules
-import {BaseModel} from             './models/BaseModel';
 import AngieDatabaseRouter from     './models/AngieDatabaseRouter';
 import {
     $$InvalidModelConfigError

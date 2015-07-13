@@ -2,7 +2,8 @@
 
 // System Modules
 import fs from                          'fs';
-import {verbose} from                   'sqlite3';
+import sqlite3 from                     'sqlite3';
+import {cyan, magenta} from             'chalk';
 import $LogProvider from                'angie-log';
 
 // Angie Modules
@@ -13,8 +14,11 @@ import {
     $$InvalidDatabaseConfigError
 } from                                  '../util/$ExceptionsProvider';
 
-const p = process,
-      sqlite3 = verbose();
+sqlite3.verbose();
+
+const p = process;
+
+console.log(sqlite3.Database);
 
 export default class SqliteConnection extends BaseDBConnection {
     constructor(database, destructive) {
@@ -45,17 +49,20 @@ export default class SqliteConnection extends BaseDBConnection {
     }
     connect() {
         let db = this.database;
+        console.log(db);
         if (!this.connection) {
             try {
                 this.connection = new sqlite3.Database(db.name);
                 $LogProvider.info('Connection successful');
             } catch(err) {
+                console.log(err);
                 throw new $$DatabaseConnectivityError(db);
             }
         }
         return this.connection;
     }
     serialize(fn) {
+        console.log('further in query', this.connect());
         return this.connect().serialize(fn);
     }
     disconnect() {
@@ -66,10 +73,13 @@ export default class SqliteConnection extends BaseDBConnection {
         let me = this,
             db = this.database,
             name = db.name || db.alias;
+        console.log('am i in the query?');
         return new Promise(function(resolve) {
-            $LogProvider.info(`Sqlite3 Query: ${name}: ${query}`);
+
+            $LogProvider.info(`Sqlite3 Query: ${cyan(name)}: ${magenta(query)}`);
             return me.serialize(resolve);
         }).then(function() {
+            console.log('further in query');
             return new Promise(function(resolve) {
                 me.connection[ key ](query, function(e, rows = []) {
                     if (e) {
@@ -118,12 +128,17 @@ export default class SqliteConnection extends BaseDBConnection {
             }
 
             let models = me.models();
+
+            console.log('MODELS', models);
+
             for (let model in models) {
 
                 // Fetch models and get model name
                 let instance = models[ model ],
                     modelName = instance.name || instance.alias ||
                         me.name(instance);
+
+                console.log('in model gen', modelName);
 
                 // Run a table creation with an ID for each table
                 proms.push(me.run(
@@ -142,14 +157,9 @@ export default class SqliteConnection extends BaseDBConnection {
     }
     migrate() {
         let me = this;
-
-        console.log('in migrate');
-
         super.migrate().then(function() {
             let models = me.models(),
                 proms = [];
-
-            console.log('migratin');
 
             for (let model in models) {
                 let instance = models[ model ],
