@@ -2,7 +2,7 @@
 
 // System Modules
 import mysql from                       'mysql';
-import {cyan, magenta} from             'chalk';
+import {cyan, magenta, gray} from       'chalk';
 import $LogProvider from                'angie-log';
 
 // Angie Modules
@@ -22,7 +22,7 @@ const p = process,
       DEFAULT_PORT = 3306;
 
 export default class MySqlConnection extends BaseDBConnection {
-    constructor(name, database, destructive) {
+    constructor(name, database, destructive, dryRun) {
         super(database, destructive);
 
         let db = this.database;
@@ -97,7 +97,6 @@ export default class MySqlConnection extends BaseDBConnection {
                 });
             });
         }).then(function(args) {
-            console.log('Im trying to print a query set');
             return me.$$querySet(model, query, args[0], args[1]);
         });
     }
@@ -139,14 +138,13 @@ export default class MySqlConnection extends BaseDBConnection {
 
                     // Run a table creation with an ID for each table
                     proms.push(me.run(
-                        `CREATE TABLE \`${modelName}\`` +
-                        ' (`id` int(11) NOT NULL AUTO_INCREMENT, ' +
+                        `CREATE TABLE \`${modelName}\` ` +
+                        '(`id` int(11) NOT NULL AUTO_INCREMENT, ' +
                         'PRIMARY KEY (`id`) ' +
                         ') ENGINE=InnoDB DEFAULT CHARSET=latin1;'
                     ));
                 }
                 return Promise.all(proms).then(function() {
-                    console.log('In migrate');
                     return me.migrate();
                 }).then(function() {
                     return me.disconnect();
@@ -155,34 +153,57 @@ export default class MySqlConnection extends BaseDBConnection {
     }
     migrate() {
         let me = this;
-
         return super.migrate().then(() => me.connect().then(arguments[0]))
             .then(function() {
                 let models = me.models(),
                     proms = [];
 
                 for (let model in models) {
-                    let instance = models[ model ],
-                        modelName = instance.name || instance.alias ||
-                            me.name(instance);
-                    instance._fields().forEach(function(field) {
-                        let nullable = instance[ field ].nullable ? ' NOT NULL' : '',
-                            unique = instance[ field ].unique ? ' UNIQUE' : '';
-                        instance[ field ].fieldname = field;
-                        proms.push(me.run(
-                            `ALTER TABLE \`${modelName}\` ADD \`${field}\` ` +
-                            `${me.types(instance[ field ])}` +
-                            (
-                                instance[ field ].maxLength ?
-                                `(${instance[ field ].maxLength})` : ''
-                            ) +
-                            `${instance[ field].type ===
-                                'ForeignKeyField' ? nullable : ''}${unique};`
-                        ));
+                    const model = models[ key ],
+                          modelName = me.name(model.name || model.alias),
+                          fields = model.$fields();
+                    let prom = me.run(
+                        `SHOW COLUMNS from ${modelName};`
+                    ).then(function(queryset) {
+                        let proms = [];
+
+                        queryset.forEach(function(v) {
+
+                            // TODO check the value of v
+                            if (
+                                fields.indexOf(v) === -1 &&
+                                me.destructive
+                            ) {
+                                let query =
+                                    `ALTER TABLE ${modelName} DROP COLUMN ${v};`;
+                                if (!me.dryRun) {
+                                    proms.push(me.run(query));
+                                } else {
+                                    $LogProvider.info(
+                                        `Dry Run Query: ${gray(query)}`
+                                    );
+                                }
+                            }
+                        });
+
+                        fields.forEach(function(v) {
+                            if (queryset.indexOf(v) === -1) {
+                                let prom = me.run(
+                                    `ALTER TABLE \`${modelName}\` ADD \`${v}\`
+                                     ${me.types(model[ v ])} ` +
+                                    (
+                                        model[ v ].maxLength ?
+                                        `(${model[ v ].maxLength})` : ''
+                                    ) +
+                                    `${model[ v ].constructor.name ===
+                                        'ForeignKeyField' && model[ v ].nullable ? model[ v ] : ''}` +
+                                    `${model[ v ].unique ? ' UNIQUE' : ''};`
+                                );
+                                proms.push(prom);
+                            }
+                        });
+                        return Promise.all(proms);
                     });
-                    if (me.destructive) {
-                        console.log('destructive');
-                    }
                 }
                 return Promise.all(proms);
             }).then(p.exit.bind(null, 0));

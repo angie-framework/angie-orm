@@ -11,6 +11,7 @@ import {
     $$InvalidDatabaseConfigError
 } from                                  '../util/$ExceptionsProvider';
 
+const p = process;
 let app,
     dbs = {},
     config;
@@ -56,7 +57,8 @@ function AngieDatabaseRouter(args) {
     }
 
     let db = config.databases ? config.databases[ name ] : undefined,
-        destructive = process.argv.indexOf('--destructive') > -1;
+        destructive = !!p.argv.some((v) => /--destructive/i.test(v)),
+        dryRun = !!p.argv.some((v) => /--dryrun/i.test(v));
 
     if (db && db.type) {
         let type = db.type;
@@ -66,7 +68,7 @@ function AngieDatabaseRouter(args) {
 
         switch (type.toLowerCase()) {
             case 'mysql':
-                database = new MySqlConnection(name, db, destructive);
+                database = new MySqlConnection(name, db, destructive, dryRun);
                 break;
 
             // TODO add for Firebase controls
@@ -74,7 +76,7 @@ function AngieDatabaseRouter(args) {
             //     database = new FirebaseConnection(db, destructive);
             //     break;
             default:
-                database = new SqliteConnection(db, destructive);
+                database = new SqliteConnection(db, destructive, dryRun);
         }
     }
 

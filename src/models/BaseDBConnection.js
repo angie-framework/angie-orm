@@ -39,9 +39,10 @@ class BaseDBConnection {
      * being made
      * @param {boolean} destructive Should destructive migrations be run?
      */
-    constructor(database, destructive = false) {
+    constructor(database, destructive = false, dryRun = false) {
         this.database = database;
         this.destructive = destructive;
+        this.dryRun = dryRun;
     }
     name(modelName) {
         modelName = modelName.replace(/([A-Z])/g, '_$1').toLowerCase();
@@ -196,8 +197,6 @@ class BaseDBConnection {
 
         // Every instance of sync needs a registry of the models, which implies
         return global.app.$$load().then(function() {
-            console.log('in', global.app.Models);
-
             me._models = global.app.Models;
             $LogProvider.info(
                 `Synccing database: ${cyan(me.database.name || me.database.alias)}`
@@ -220,7 +219,6 @@ class BaseDBConnection {
             rels = [],
             relFieldNames = {},
             relArgs = {},
-
             proms = [];
 
         // We want to process all of the foreign keys
@@ -237,10 +235,7 @@ class BaseDBConnection {
             }
         });
 
-        console.log('ROWS', rows);
-
-        // Instantiate a promise for each of the foreign key fields in the
-        // query
+        // Instantiate a promise for each of the foreign key fields in the query
         rels.forEach(function(v) {
             proms.push(me.filter({
                 model: {
@@ -253,6 +248,8 @@ class BaseDBConnection {
                 if (errors === null) {
                     errors = [];
                 }
+
+                // Add any errors to the queryset
                 errors.push(queryset.errors);
 
                 rows.forEach(function(row) {

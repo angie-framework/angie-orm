@@ -10,11 +10,12 @@ class BaseField {
         minLength = 0,
         maxLength = undefined,
         nullable = false,
-        unique = false
+        unique = false,
+        $default = undefined
     ) {
         this.type = 'BaseField';
         if (typeof args === 'object') {
-            util.inherits(this, arguments[0]);
+            util._extend(this, arguments[0]);
         } else if (!isNaN(args)) {
             if (args === 1) {
                 return;
@@ -25,14 +26,16 @@ class BaseField {
                 this.minLength,
                 this.maxLength,
                 this.nullable,
-                this.unique
+                this.unique,
+                this.default
             ] = [
                 args,
                 maxValue,
                 minLength,
                 maxLength,
                 nullable,
-                unique
+                unique,
+                $default
             ];
         }
     }
@@ -44,7 +47,8 @@ class BaseField {
             this.default &&
             this.validate(this.default)
         ) {
-            this.value = this.default;
+            this.value = typeof this.default === 'function' ? this.default() :
+                this.default;
         }
     }
     validate(value) {

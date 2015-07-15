@@ -11,7 +11,7 @@ import {
 
 const IGNORE_KEYS = [
     'database',
-    '__database__',
+    '$$database',
     'model',
     'name',
     'fields',
@@ -26,14 +26,14 @@ export class BaseModel {
     all() {
 
         // Returns all of the rows
-        return this._prep.apply(this, arguments).all(this.name);
+        return this.$$prep.apply(this, arguments).all(this.name);
     }
     fetch() {
         let args = arguments[0];
         args.model = this;
 
         // Returns a subset of rows specified with an int and a head/tail argument
-        return this._prep.apply(
+        return this.$$prep.apply(
             this,
             arguments
         ).fetch(args);
@@ -43,7 +43,7 @@ export class BaseModel {
         args.model = this;
 
         // Returns a filtered subset of rows
-        return this._prep.apply(
+        return this.$$prep.apply(
             this,
             arguments
         ).filter(args);
@@ -57,13 +57,13 @@ export class BaseModel {
         let args = arguments[0];
         args.model = this;
 
-        this.database = this._prep.apply(this, arguments);
+        this.database = this.$$prep.apply(this, arguments);
 
         // Make sure all of our fields are resolved
         let createObj = {},
             me = this;
 
-        this._fields().forEach(function(field) {
+        this.$fields().forEach(function(field) {
             const val = args[ field ] || null;
             if (
                 me[ field ] &&
@@ -84,7 +84,7 @@ export class BaseModel {
         args.model = this;
 
         // Delete a record/set of records
-        return this._prep.apply(
+        return this.$$prep.apply(
             this,
             arguments
         ).delete(args);
@@ -95,21 +95,21 @@ export class BaseModel {
                 arguments[1](new Error('Invalid Query String'));
             });
         }
-        return this._prep.apply(this, args).raw(query, this);
+        return this.$$prep.apply(this, args).raw(query, this);
     }
-    _prep() {
+    $$prep() {
         const args = arguments[0],
               database = typeof args === 'object' && args.hasOwnProperty('database') ?
                 args.database : null;
 
         // This forces the router to use a specific database, DB can also be
         // forced at a model level by using this.database
-        this.__database__ = AngieDatabaseRouter(
+        this.$$database = AngieDatabaseRouter(
             database || this.database || 'default'
         );
-        return this.__database__;
+        return this.$$database;
     }
-    _fields() {
+    $fields() {
         this.fields = [];
         for (let key in this) {
             if (

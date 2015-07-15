@@ -11,13 +11,12 @@ import {gray, cyan} from            'chalk';
 import {$injectionBinder} from      'angie-injector';
 import $LogProvider from            'angie-log';
 
-console.log('HERE');
-
 // Angie ORM Global Modules
 import './Angie';
 
 // Angie ORM Modules
 import AngieDatabaseRouter from     './models/AngieDatabaseRouter';
+import * as $$FieldProvider from    './models/Fields';
 import {
     $$InvalidModelConfigError
 } from                              './util/$ExceptionsProvider';
@@ -30,14 +29,12 @@ let args = [];
 
 // Remove trivial arguments
 p.argv.forEach(function(v) {
-    if (!v.match(/(node|iojs|index|angie(\-orm)?)/)) {
+    if (!v.match(/(node|iojs|index|help|angie(\-orm)?)/)) {
         args.push(v);
     } else if (v === 'help') {
         help();
     }
 });
-
-console.log(args);
 
 // Route the CLI request to a specific command if running from CLI
 if (
@@ -80,21 +77,21 @@ function help() {
     console.log('\r');
     $LogProvider.bold('Commands:');
     console.log(
-        'syncdb [ database ]                                ' +
+        'syncdb [ database ]                                                   ' +
         gray(
             'Sync the current specified databases in the AngieFile. ' +
             'Defaults to the default created database'
         )
     );
     console.log(
-        'migrations [ --destructive -- optional ]           ' +
+        'migrations [ --destructive -- optional ] [ --dryrun -- optional ]     ' +
         gray(
             'Checks to see if the database and the specified ' +
             'models are out of sync. Generates NO files.'
         )
     );
     console.log(
-        'test                                               ' +
+        'test                                                                  ' +
         gray(
             'Runs the Angie test suite and prints the results in the ' +
             'console'
@@ -102,3 +99,5 @@ function help() {
     );
     p.exit(0);
 }
+
+export {$$FieldProvider as $$Fields};
