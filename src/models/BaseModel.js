@@ -70,7 +70,7 @@ export class BaseModel {
                 me[ field ].validate &&
                 me[ field ].validate(val)
             ) {
-                createObj[field] = val;
+                createObj[ field ] = val;
             } else {
                 throw new $$InvalidModelFieldReference(me.name, field);
             }

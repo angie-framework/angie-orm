@@ -214,7 +214,7 @@ class BaseDBConnection {
             );
         });
     }
-    $$querySet(model, query, rows, errors) {
+    $$querySet(model, query, rows = [], errors) {
         let me = this,
             rels = [],
             relFieldNames = {},
@@ -222,18 +222,20 @@ class BaseDBConnection {
             proms = [];
 
         // We want to process all of the foreign keys
-        rows.forEach(function(v) {
+        if (rows instanceof Array) {
+            rows.forEach(function(v) {
 
-            // Find all of the foreign key fields
-            for (let key in v) {
-                const field = model[ key ];
-                if (field && field.nesting === true) {
-                    rels.push(field.rel);
-                    relFieldNames[ field.rel ] = key;
-                    relArgs[ field.rel ] = me.$$queryInString(rows, 'id');
+                // Find all of the foreign key fields
+                for (let key in v) {
+                    const field = model[ key ];
+                    if (field && field.nesting === true) {
+                        rels.push(field.rel);
+                        relFieldNames[ field.rel ] = key;
+                        relArgs[ field.rel ] = me.$$queryInString(rows, 'id');
+                    }
                 }
-            }
-        });
+            });
+        }
 
         // Instantiate a promise for each of the foreign key fields in the query
         rels.forEach(function(v) {

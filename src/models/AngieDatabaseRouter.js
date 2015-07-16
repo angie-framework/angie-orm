@@ -6,6 +6,7 @@ import fs from                          'fs';
 // Angie ORM Modules
 import SqliteConnection from            './SqliteConnection';
 import MySqlConnection from             './MySqlConnection';
+import FirebaseConnection from          './FirebaseConnection';
 import {
     $$InvalidConfigError,
     $$InvalidDatabaseConfigError
@@ -41,11 +42,12 @@ function AngieDatabaseRouter(args) {
     config = global.app.$$config;
 
     if (args instanceof Array) {
-        args.forEach(function(arg) {
-            if (Object.keys(config.databases || {}).indexOf(args[1]) > -1) {
+        for (let arg of args) {
+            if (Object.keys(config.databases).indexOf(arg) > -1) {
                 name = arg;
+                break;
             }
-        });
+        }
     } else if (typeof args === 'string') {
         name = args;
     }
@@ -57,24 +59,17 @@ function AngieDatabaseRouter(args) {
     }
 
     let db = config.databases ? config.databases[ name ] : undefined,
-        destructive = !!p.argv.some((v) => /--destructive/i.test(v)),
-        dryRun = !!p.argv.some((v) => /--dryrun/i.test(v));
+        destructive = p.argv.some((v) => /--destructive/i.test(v)),
+        dryRun = p.argv.some((v) => /--dry([-_])?run/i.test(v));
 
     if (db && db.type) {
-        let type = db.type;
-
-        // TODO call these with the actual DB, we should not have to check
-        // the config once it's in a bucket
-
-        switch (type.toLowerCase()) {
+        switch (db.type.toLowerCase()) {
             case 'mysql':
                 database = new MySqlConnection(name, db, destructive, dryRun);
                 break;
-
-            // TODO add for Firebase controls
-            // case 'firebase':
-            //     database = new FirebaseConnection(db, destructive);
-            //     break;
+            case 'firebase':
+                database = new FirebaseConnection(db, destructive, dryRun);
+                break;
             default:
                 database = new SqliteConnection(db, destructive, dryRun);
         }

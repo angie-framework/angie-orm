@@ -111,16 +111,11 @@ app.Model = function Model(name, obj = {}) {
 
     let instance = new BaseModel(name);
 
-    console.log('HERE', instance);
-
     // Mock extend obj onto the instance
     if (typeof model === 'object') {
-        console.log(instance, model);
         instance = util._extend(instance, model);
     } else {
         throw new $$InvalidModelConfigError(name);
     }
-    //return this.$$register('Models', name, instance);
-    this.$$register('Models', name, instance);
-    console.log('THIS', this);
+    return this.$$register('Models', name, instance);
 };

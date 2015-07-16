@@ -168,11 +168,21 @@ export default class SqliteConnection extends BaseDBConnection {
                 }
 
                 fields.forEach(function(v) {
-                    let query =
+                    let query,
+                        $default;
+                    if (model[ v ].default) {
+                        $default = model[ v ].default;
+                        if (typeof $default === 'function') {
+                            $default = $default();
+                        }
+                    }
+                    query =
                         `ALTER TABLE ${modelName} ADD COLUMN ${v} ` +
                         `${me.types(model[ v ])}` +
-                        `${model[ v ].constructor.name === 'ForeignKeyField' && model[ v ].nullable ? ' NOT NULL' : ''}` +
-                        `${model[ v ].unique ? ' UNIQUE' : ''};`
+                        `${model[ v ].constructor.name === 'ForeignKeyField' &&
+                            model[ v ].nullable ? ' NOT NULL' : ''}` +
+                        `${model[ v ].unique ? ' UNIQUE' : ''}` +
+                        `${$default ? ` DEFAULT '${$default}'` : ''};`
                     if (!me.dryRun) {
                         proms.push(me.run(query));
                     } else {

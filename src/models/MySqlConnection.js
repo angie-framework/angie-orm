@@ -9,8 +9,6 @@ import $LogProvider from                'angie-log';
 import BaseDBConnection, {
     $$DatabaseConnectivityError
 } from                                  './BaseDBConnection';
-
-// TODO import ORM Exceptions
 import {
     $$InvalidDatabaseConfigError
 } from                                  '../util/$ExceptionsProvider';
@@ -23,7 +21,7 @@ const p = process,
 
 export default class MySqlConnection extends BaseDBConnection {
     constructor(name, database, destructive, dryRun) {
-        super(database, destructive);
+        super(database, destructive, dryRun);
 
         let db = this.database;
 
@@ -66,12 +64,12 @@ export default class MySqlConnection extends BaseDBConnection {
     }
     connect() {
         let me = this;
-        return new Promise(function() {
-            me.connection.connect(arguments[0]);
-        }).then(
-            () => $LogProvider.info('Connection successful'),
-            () => { throw new $$InvalidDatabaseConfigError(me.database) }
-        );
+        return new Promise(function(resolve) {
+            return me.connection.connect(function() {
+                $LogProvider.info('Connection successful');
+                resolve();
+            });
+        });
     }
     disconnect() {
         return this.connection.end();
@@ -80,10 +78,8 @@ export default class MySqlConnection extends BaseDBConnection {
         let me = this,
             db = this.database,
             name = db.name || db.alias;
-        return new Promise(function() {
-            try {
-                return me.connect().then(arguments[0]);
-            } catch(e) {}
+        return new Promise(function(resolve) {
+            return me.connect().then(resolve);
         }).then(function() {
             return new Promise(function(resolve) {
                 $LogProvider.info(
@@ -123,89 +119,105 @@ export default class MySqlConnection extends BaseDBConnection {
         let me = this;
 
         // Don't worry about the error state, handled by connection
-        return super.sync().then(() => me.connect().then(arguments[0]))
-            .then(function() {
+        return super.sync().then(function() {
+            let models = me.models(),
+                proms = [];
 
-                let models = me.models(),
-                    proms = [];
+            for (let model in models) {
 
-                for (let model in models) {
+                // Fetch models and get model name
+                let instance = models[ model ],
+                    modelName = instance.name || instance.alias ||
+                        me.name(model);
 
-                    // Fetch models and get model name
-                    let instance = models[ model ],
-                        modelName = instance.name || instance.alias ||
-                            me.name(model);
-
-                    // Run a table creation with an ID for each table
-                    proms.push(me.run(
-                        `CREATE TABLE \`${modelName}\` ` +
-                        '(`id` int(11) NOT NULL AUTO_INCREMENT, ' +
-                        'PRIMARY KEY (`id`) ' +
-                        ') ENGINE=InnoDB DEFAULT CHARSET=latin1;'
-                    ));
-                }
-                return Promise.all(proms).then(function() {
-                    return me.migrate();
-                }).then(function() {
-                    return me.disconnect();
-                });
+                // Run a table creation with an ID for each table
+                proms.push(me.run(
+                    `CREATE TABLE \`${modelName}\` ` +
+                    '(`id` int(11) NOT NULL AUTO_INCREMENT, ' +
+                    'PRIMARY KEY (`id`) ' +
+                    ') ENGINE=InnoDB DEFAULT CHARSET=latin1;'
+                ));
+            }
+            return Promise.all(proms).then(function() {
+                return me.migrate();
+            }).then(function() {
+                return me.disconnect();
             });
+        });
     }
     migrate() {
         let me = this;
-        return super.migrate().then(() => me.connect().then(arguments[0]))
-            .then(function() {
-                let models = me.models(),
-                    proms = [];
-
-                for (let model in models) {
-                    const model = models[ key ],
-                          modelName = me.name(model.name || model.alias),
-                          fields = model.$fields();
-                    let prom = me.run(
-                        `SHOW COLUMNS from ${modelName};`
-                    ).then(function(queryset) {
-                        let proms = [];
-
-                        queryset.forEach(function(v) {
-
-                            // TODO check the value of v
-                            if (
-                                fields.indexOf(v) === -1 &&
-                                me.destructive
-                            ) {
-                                let query =
-                                    `ALTER TABLE ${modelName} DROP COLUMN ${v};`;
-                                if (!me.dryRun) {
-                                    proms.push(me.run(query));
-                                } else {
-                                    $LogProvider.info(
-                                        `Dry Run Query: ${gray(query)}`
-                                    );
+        return super.migrate().then(function() {
+            let models = me.models(),
+                proms = [];
+            for (let key in models) {
+                const model = models[ key ],
+                      modelName = me.name(model.name || model.alias),
+                      fields = model.$fields();
+                let prom = me.run(
+                    `SHOW COLUMNS from \`${modelName}\`;`,
+                    modelName
+                ).then(function(queryset) {
+                    let proms = [];
+                    queryset.forEach(function(v) {
+                        if (
+                            fields.indexOf(v.Field) === -1 &&
+                            v.Field !== 'id' &&
+                            me.destructive
+                        ) {
+                            let query =
+                                `ALTER TABLE \`${modelName}\` DROP COLUMN \`${v.Field}\`;`;
+                            if (!me.dryRun) {
+                                proms.push(me.run(query));
+                            } else {
+                                $LogProvider.info(
+                                    `Dry Run Query: ${gray(query)}`
+                                );
+                            }
+                        }
+                    });
+                    fields.forEach(function(v) {
+                        if (queryset.map(($v) => $v.Field).indexOf(v) === -1) {
+                            let query,
+                                $default;
+                            if (model[ v ].default) {
+                                $default = model[ v ].default;
+                                if (typeof $default === 'function') {
+                                    $default = $default();
                                 }
                             }
-                        });
-
-                        fields.forEach(function(v) {
-                            if (queryset.indexOf(v) === -1) {
-                                let prom = me.run(
-                                    `ALTER TABLE \`${modelName}\` ADD \`${v}\`
-                                     ${me.types(model[ v ])} ` +
-                                    (
-                                        model[ v ].maxLength ?
-                                        `(${model[ v ].maxLength})` : ''
-                                    ) +
-                                    `${model[ v ].constructor.name ===
-                                        'ForeignKeyField' && model[ v ].nullable ? model[ v ] : ''}` +
-                                    `${model[ v ].unique ? ' UNIQUE' : ''};`
+                            query =
+                                `ALTER TABLE \`${modelName}\` ADD \`${v}\` ` +
+                                `${me.types(model[ v ])}(` +
+                                (
+                                    model[ v ].maxLength ?
+                                    `${model[ v ].maxLength}` : '255'
+                                ) +
+                                `)${model[ v ].constructor.name ===
+                                    'ForeignKeyField' && model[ v ].nullable ? '' : ' NOT NULL'}` +
+                                `${model[ v ].unique ? ' UNIQUE' : ''}` +
+                                `${$default ? ` DEFAULT '${$default}'` : ''};`
+                            if (!me.dryRun) {
+                                proms.push(me.run(query));
+                            } else {
+                                $LogProvider.info(
+                                    `Dry Run Query: ${gray(query)}`
                                 );
-                                proms.push(prom);
                             }
-                        });
-                        return Promise.all(proms);
+                        }
                     });
-                }
-                return Promise.all(proms);
-            }).then(p.exit.bind(null, 0));
+                    return Promise.all(proms);
+                });
+                proms.push(prom);
+            }
+            return Promise.all(proms);
+        }).then(function() {
+            $LogProvider.info(
+                `Successfully Synced & Migrated ${cyan(
+                    me.database.name || me.database.alias
+                 )}`
+            );
+            p.exit(0);
+        });
     }
 }

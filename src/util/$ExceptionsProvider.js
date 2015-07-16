@@ -1,18 +1,16 @@
 'use strict'; 'use strong';
 
 // System Modules
-import {red, bold, magenta} from 'chalk';
-
-const bread = () => red(bold.apply(null, arguments));
+import {magenta} from               'chalk';
+import $LogProvider from            'angie-log';
 
 class $$InvalidConfigError extends ReferenceError {
     constructor(name) {
-        super(
-            bread(
-                `Invalid ${name} configuration settings. ` +
-                'Please check your AngieFile.'
-            )
+        $LogProvider.error(
+            `Invalid ${name} configuration settings. ` +
+            'Please check your AngieFile.'
         );
+        super();
     }
 }
 

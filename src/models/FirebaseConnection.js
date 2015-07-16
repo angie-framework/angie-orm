@@ -12,6 +12,9 @@
 
 // const p = process;
 
+class FirebaseConnection {}
+export default FirebaseConnection;
+
 // export default class FirebaseConnection extends BaseDBConnection {
 //     constructor(database = 'default') {
 //         super();

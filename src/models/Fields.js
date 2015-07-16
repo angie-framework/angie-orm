@@ -123,3 +123,43 @@ export class ForeignKeyField extends BaseField {
         this.type = 'ForeignKeyField';
     }
 }
+
+export class ManyToManyField extends ForeignKeyField {
+    constructor(rel, args) {
+        super(rel, args);
+        this.type = 'ManyToManyField';
+
+        // TODO should be parent table id, sub parent table id
+        //this.crossReferenceTableId = `${this.rel}`;
+
+        global.app.Model(this.crossReferenceTableId, {
+            // TODO parent table id
+            //`${this.rel}_id`
+        });
+
+        // Setup a reference to the relationship model
+        this.crossReferenceTable = global.app.Models[ this.crossReferenceTableId ];
+
+
+    }
+    add(obj) {
+
+        // TODO check to see that obj is an instance of a model
+
+        this.crossReferenceTable.create({
+            // TODO parent table id
+            //`${this.rel}_id`
+        })
+    }
+    remove() {
+        // object to remove
+    }
+}
+
+
+export {
+    CharField,
+    IntegerField,
+    ForeignKeyField,
+    ManyToManyField
+}
