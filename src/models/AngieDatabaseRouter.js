@@ -7,6 +7,7 @@ import fs from                          'fs';
 import SqliteConnection from            './SqliteConnection';
 import MySqlConnection from             './MySqlConnection';
 import FirebaseConnection from          './FirebaseConnection';
+import MongoDBConnection from           './MongoDBConnection';
 import {
     $$InvalidConfigError,
     $$InvalidDatabaseConfigError

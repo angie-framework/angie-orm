@@ -16,7 +16,7 @@ import './Angie';
 
 // Angie ORM Modules
 import AngieDatabaseRouter from     './models/AngieDatabaseRouter';
-import * as $$FieldProvider from    './models/Fields';
+import * as $$FieldProvider from    './models/$Fields';
 import {
     $$InvalidModelConfigError
 } from                              './util/$ExceptionsProvider';

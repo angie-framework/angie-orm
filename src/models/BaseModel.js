@@ -19,17 +19,17 @@ const IGNORE_KEYS = [
     'rows'
 ];
 
-export class BaseModel {
+class BaseModel {
     constructor(name) {
         this.name = this.name || name;
     }
-    all() {
+    all(args = {}) {
+        args.model = this;
 
         // Returns all of the rows
-        return this.$$prep.apply(this, arguments).all(this.name);
+        return this.$$prep.apply(this, arguments).all(args);
     }
-    fetch() {
-        let args = arguments[0];
+    fetch(args = {}) {
         args.model = this;
 
         // Returns a subset of rows specified with an int and a head/tail argument
@@ -38,8 +38,8 @@ export class BaseModel {
             arguments
         ).fetch(args);
     }
-    filter() {
-        let args = arguments[0];
+    filter(args = {}) {
+        console.log(args, this);
         args.model = this;
 
         // Returns a filtered subset of rows
@@ -53,8 +53,7 @@ export class BaseModel {
             return !!querySet.length;
         });
     }
-    create() {
-        let args = arguments[0];
+    create(args = {}) {
         args.model = this;
 
         this.database = this.$$prep.apply(this, arguments);
@@ -79,8 +78,7 @@ export class BaseModel {
         // Once that is settled, we can call our create
         return this.database.create(args);
     }
-    delete() {
-        let args = arguments[0];
+    delete(args = {}) {
         args.model = this;
 
         // Delete a record/set of records
@@ -97,18 +95,6 @@ export class BaseModel {
         }
         return this.$$prep.apply(this, args).raw(query, this);
     }
-    $$prep() {
-        const args = arguments[0],
-              database = typeof args === 'object' && args.hasOwnProperty('database') ?
-                args.database : null;
-
-        // This forces the router to use a specific database, DB can also be
-        // forced at a model level by using this.database
-        this.$$database = AngieDatabaseRouter(
-            database || this.database || 'default'
-        );
-        return this.$$database;
-    }
     $fields() {
         this.fields = [];
         for (let key in this) {
@@ -121,46 +107,129 @@ export class BaseModel {
         }
         return this.fields;
     }
+    $$prep(args = {}) {
+        const database = typeof args === 'object' && args.hasOwnProperty('database') ?
+                  args.database : null;
+
+        // This forces the router to use a specific database, DB can also be
+        // forced at a model level by using this.database
+        this.$$database = AngieDatabaseRouter(
+            database || this.database || 'default'
+        );
+        return this.$$database;
+    }
 }
 
 // "DO YOU WANT TO CHAIN!? BECAUSE THIS IS HOW YOU CHAIN!"
 // TODO this can be made much better once Promise is subclassable
-let AngieDBObject = function(database, model, query = '') {
-    if (!database || !model) {
-        return;
-    }
-    this.database = database;
-    this.model = model;
-    this.query = query;
-};
+// let AngieDBObject = function(database, model, query = '') {
+//     if (!database || !model) {
+//         return;
+//     }
+//     this.database = database;
+//     this.model = model;
+//     this.query = query;
+// };
+//
+// AngieDBObject.prototype.update = function(args = {}) {
+//     args.model = this.model;
+//     args.rows = this;
+//     if (typeof args !== 'object') {
+//         return;
+//     }
+//
+//     let updateObj = {};
+//     for (let key in args) {
+//         const val = args[ key ] || null;
+//         if (IGNORE_KEYS.indexOf(key) > -1) {
+//             continue;
+//         } else if (
+//             this[ key ] &&
+//             this[ key ].validate &&
+//             this[ key ].validate(val)
+//         ) {
+//             updateObj[ key ] = val;
+//         } else {
+//             throw new $$InvalidModelFieldReferenceError(this.name, key);
+//         }
+//     }
+//
+//     util._extend(args, updateObj);
+//     return this.database.update(args);
+// };
 
-AngieDBObject.prototype.update = function() {
-    let args = arguments[0];
+// TODO update the AngieDBObject to make it a sugared class
+// TODO make a double private method called $$add -> or just have the class itself
+// inherit from the many to many Field
+// for each row you need to add a way to grab all of the many to many REFERENCES
+// delete and add references
 
-    args.model = this.model;
-    args.rows = this;
-    if (typeof args !== 'object') {
-        return;
-    }
-
-    let updateObj = {};
-    for (let key in args) {
-        const val = args[ key ] || null;
-        if (IGNORE_KEYS.indexOf(key) > -1) {
-            continue;
-        } else if (
-            this[ key ] &&
-            this[ key ].validate &&
-            this[ key ].validate(val)
-        ) {
-            updateObj[ key ] = val;
-        } else {
-            throw new $$InvalidModelFieldReferenceError(this.name, key);
+class AngieDBObject {
+    constructor(database, model, query = '') {
+        if (!database || !model) {
+            return;
         }
+        this.database = database;
+        this.model = model;
+        this.query = query;
     }
+    update(args = {}) {
+        args.model = this.model;
+        args.rows = this;
+        if (typeof args !== 'object') {
+            return;
+        }
 
-    util.inherits(args, updateObj);
-    return this.database.update(args);
+        let updateObj = {};
+        for (let key in args) {
+            const val = args[ key ] || null;
+            if (IGNORE_KEYS.indexOf(key) > -1) {
+                continue;
+            } else if (
+                this[ key ] &&
+                this[ key ].validate &&
+                this[ key ].validate(val)
+            ) {
+                updateObj[ key ] = val;
+            } else {
+                throw new $$InvalidModelFieldReferenceError(this.name, key);
+            }
+        }
+
+        util._extend(args, updateObj);
+        return this.database.update(args);
+    }
+    $$addOrRemove(method, field, id, obj) {
+
+        // TODO verify that this is called with a many to many reference
+        return field.crossReferenceTable[ method ]({
+            [ `${field.name}_id`]: id,
+            [ `${field.rel}_id` ]: obj.id
+        });
+    }
+    $$readMethods(method, field, args) {
+        return field.crossReferenceTable[ method ](args);
+    }
+    // $$add(field, id, obj) {
+    //     return $$addOrDelete('create', field, id, obj);
+    // }
+    // $$remove(field, id, obj) {
+    //     return $$addOrDelete('delete', field, id, obj);
+    // }
+    // $$all(field, args) {
+    //     return field.crossReferenceTable.all(args);
+    // }
+    // $$fetch(field, args) {
+    //     return field.crossReferenceTable.fetch(args);
+    // }
+    // $$filter(field, args) {
+    //     return field.crossReferenceTable.filter(args);
+    // }
+}
+
+// TODO update references to base model for default export
+export default BaseModel;
+export {
+    BaseModel,
+    AngieDBObject
 };
-
-export {AngieDBObject};

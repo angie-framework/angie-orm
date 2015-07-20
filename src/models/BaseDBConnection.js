@@ -55,6 +55,7 @@ class BaseDBConnection {
         return this._models;
     }
     all(args = {}, fetchQuery = '', filterQuery = '') {
+        console.log('ALL ARGS', args);
         if (!args.model || !args.model.name) {
             throw new $$InvalidModelReferenceError();
         }
@@ -215,12 +216,53 @@ class BaseDBConnection {
         });
     }
     $$querySet(model, query, rows = [], errors) {
+        const queryset = new AngieDBObject(this, model, query);
         let me = this,
+            manyToManyFieldNames = [],
             rels = [],
             relFieldNames = {},
             relArgs = {},
             proms = [];
 
+        // TODO push many to manys to an array and iterate of that array in the next block,
+        // move deletes below
+        for (let key in model) {
+            let field = model[ key ];
+            if (field.type && field.type === 'ManyToManyField') {
+            }
+        }
+
+        for (let key in model) {
+            let field = model[ key ];
+            if (field.type && field.type === 'ManyToManyField') {
+                rows.forEach(function(v) {
+                    let many = v[ key ] = {};
+                    for (let method of [ 'create', 'delete']) {
+                        many[ method ] =
+                            queryset.$$addOrRemove.bind(
+                                method,
+                                queryset,
+                                field,
+                                v.id
+                            );
+                    }
+                    for (let method of [ 'all', 'fetch', 'filter' ]) {
+                        many[ method ] = queryset.$$readMethods.bind(
+                            method,
+                            field
+                        );
+                    }
+                    many.all = queryset.$$readMethods.bind('all', field);
+                    many.fetch = queryset.$$readMethods.bind('fetch', field);
+                    many.filter = queryset.$$readMethods.bind('filter', field);
+                });
+            }
+        }
+
+        delete queryset.$$addOrRemove;
+        delete queryset.$$readMethods;
+
+        // TODO update this to work with the many to many fields ^^
         // We want to process all of the foreign keys
         if (rows instanceof Array) {
             rows.forEach(function(v) {
@@ -273,11 +315,9 @@ class BaseDBConnection {
         return Promise.all(proms).then(function() {
 
             // Resolves to a value in the connections currently
-            const queryset = new AngieDBObject(me, model, query);
             return util._extend(
                 rows,
                 { errors: errors },
-                AngieDBObject.prototype,
                 queryset
             );
         });

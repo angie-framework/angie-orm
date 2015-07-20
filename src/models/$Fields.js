@@ -1,7 +1,16 @@
-'use strict'; 'use strong';
+// 'use strict'; 'use strong';
 
 // System Modules
-import util from    'util';
+import util from                'util';
+import {magenta, cyan} from     'chalk';
+import $LogProvider from        'angie-log';
+
+// Angie ORM Modules
+import {
+    $$InvalidModelConfigError
+} from                          '../util/$ExceptionsProvider';
+
+const p = process;
 
 class BaseField {
     constructor(
@@ -76,7 +85,7 @@ class BaseField {
     }
 }
 
-export class CharField extends BaseField {
+class CharField extends BaseField {
     constructor() {
         super(...arguments);
         this.type = 'CharField';
@@ -96,19 +105,22 @@ export class CharField extends BaseField {
     }
 }
 
-export class IntegerField extends BaseField {
+class IntegerField extends BaseField {
     constructor() {
         super(...arguments);
         this.type = 'IntegerField';
     }
 }
 
-export class ForeignKeyField extends BaseField {
+class ForeignKeyField extends BaseField {
     constructor(rel, args) {
         super(1);
         if (!rel) {
+            $LogProvider.warn('Invalid relative field in constrained field');
             return;
         }
+
+        console.log('ARGS', args);
 
         this.nesting = true;
         this.deepNesting = false;
@@ -124,42 +136,54 @@ export class ForeignKeyField extends BaseField {
     }
 }
 
-export class ManyToManyField extends ForeignKeyField {
-    constructor(rel, args) {
+class ManyToManyField extends ForeignKeyField {
+    constructor(rel, args = {}) {
         super(rel, args);
+
         this.type = 'ManyToManyField';
+        this.name = args.alias || args.name;
+        if (!name) {
+            throw new $$InvalidFieldConfigError(
+                this.type,
+                `${cyan(`${this.type}s`)} require name or alias in their ` +
+                `configuration`
+            );
+        }
 
         // TODO should be parent table id, sub parent table id
-        //this.crossReferenceTableId = `${this.rel}`;
-
+        this.crossReferenceTableId = args.tableName || `${this.name}_${this.rel}_id`;
         global.app.Model(this.crossReferenceTableId, {
-            // TODO parent table id
-            //`${this.rel}_id`
+            [ `${this.name}_id` ]: new IntegerField({
+                unique: true,
+                minValue: 1,
+                maxLength: 11
+            }),
+            [ `${this.rel}_id` ]: new IntegerField({
+                unique: true,
+                minValue: 1,
+                maxLength: 11
+            })
         });
 
         // Setup a reference to the relationship model
         this.crossReferenceTable = global.app.Models[ this.crossReferenceTableId ];
-
-
-    }
-    add(obj) {
-
-        // TODO check to see that obj is an instance of a model
-
-        this.crossReferenceTable.create({
-            // TODO parent table id
-            //`${this.rel}_id`
-        })
-    }
-    remove() {
-        // object to remove
     }
 }
 
+class $$InvalidFieldConfigError extends TypeError {
+    constructor(type, error = '') {
+        $LogProvider.error(
+            `Invalid Field configuration for ${magenta(type)}` +
+            `${error ? `: ${error}` : ''}`
+        );
+        super();
+        p.exit(1);
+    }
+}
 
 export {
     CharField,
     IntegerField,
     ForeignKeyField,
     ManyToManyField
-}
+};

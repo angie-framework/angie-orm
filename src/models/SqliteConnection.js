@@ -168,6 +168,10 @@ export default class SqliteConnection extends BaseDBConnection {
                 }
 
                 fields.forEach(function(v) {
+                    if (model[ v ].type === 'ManyToManyField') {
+                        return;
+                    }
+
                     let query,
                         $default;
                     if (model[ v ].default) {

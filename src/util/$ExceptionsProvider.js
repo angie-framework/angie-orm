@@ -4,10 +4,12 @@
 import {magenta} from               'chalk';
 import $LogProvider from            'angie-log';
 
+const p = process;
+
 class $$InvalidConfigError extends ReferenceError {
-    constructor(name) {
+    constructor(name = '') {
         $LogProvider.error(
-            `Invalid ${name} configuration settings. ` +
+            `Invalid${name ? ` ${name}` : ''} configuration settings. ` +
             'Please check your AngieFile.'
         );
         super();
@@ -21,17 +23,22 @@ class $$InvalidDatabaseConfigError extends $$InvalidConfigError {
 }
 
 class $$InvalidModelConfigError extends TypeError {
-    constructor(name) {
-        super(bread(
+    constructor(name, error = '') {
+        $LogProvider.error(
             'Invalid Model configuration for model ' +
-            `${magenta(name)} <-- ${magenta(name)}${magenta('Provider')}`
-        ));
+            `${magenta(name)} <-- ${magenta(name)}${magenta('Provider')}` +
+            `${error ? ` ${error}` : ''}`
+        );
+        super();
+        p.exit(1);
     }
 }
 
 class $$InvalidModelReferenceError extends Error {
     constructor() {
-        super(bread('Invalid Model argument'));
+        $LogProvider.error('Invalid Model argument');
+        super();
+        p.exit(1);
     }
 }
 

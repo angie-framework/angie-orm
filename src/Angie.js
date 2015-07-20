@@ -9,7 +9,7 @@ import $LogProvider from            'angie-log';
 
 // Angie ORM Modules
 import {BaseModel} from             './models/BaseModel';
-import * as $$FieldProvider from    './models/Fields';
+import * as $$FieldProvider from    './models/$Fields';
 
 
 // Setup the app or inherit the app from the `global` Namespace

@@ -13,8 +13,6 @@ import {
     $$InvalidDatabaseConfigError
 } from                                  '../util/$ExceptionsProvider';
 
-
-
 const p = process,
       DEFAULT_HOST = '127.0.0.1',
       DEFAULT_PORT = 3306;
@@ -159,6 +157,8 @@ export default class MySqlConnection extends BaseDBConnection {
                     modelName
                 ).then(function(queryset) {
                     let proms = [];
+
+                    // TODO you've got to drop the many to many here
                     queryset.forEach(function(v) {
                         if (
                             fields.indexOf(v.Field) === -1 &&
@@ -176,7 +176,12 @@ export default class MySqlConnection extends BaseDBConnection {
                             }
                         }
                     });
+
+                    // TODO you've got to return if many to many here
                     fields.forEach(function(v) {
+                        if (model[ v ].type === 'ManyToManyField') {
+                            return;
+                        }
                         if (queryset.map(($v) => $v.Field).indexOf(v) === -1) {
                             let query,
                                 $default;
@@ -187,14 +192,15 @@ export default class MySqlConnection extends BaseDBConnection {
                                 }
                             }
                             query =
-                                `ALTER TABLE \`${modelName}\` ADD \`${v}\` ` +
+                                `ALTER TABLE \`${modelName}\` ADD COLUMN \`${v}\` ` +
                                 `${me.types(model[ v ])}(` +
                                 (
                                     model[ v ].maxLength ?
                                     `${model[ v ].maxLength}` : '255'
                                 ) +
                                 `)${model[ v ].constructor.name ===
-                                    'ForeignKeyField' && model[ v ].nullable ? '' : ' NOT NULL'}` +
+                                    'ForeignKeyField' && model[ v ].nullable ? '' :
+                                    ' NOT NULL'}` +
                                 `${model[ v ].unique ? ' UNIQUE' : ''}` +
                                 `${$default ? ` DEFAULT '${$default}'` : ''};`
                             if (!me.dryRun) {
