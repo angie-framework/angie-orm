@@ -229,6 +229,7 @@ class BaseDBConnection {
         for (let key in model) {
             let field = model[ key ];
             if (field.type && field.type === 'ManyToManyField') {
+                manyToManyFieldNames.push(key);
             }
         }
 
@@ -252,9 +253,6 @@ class BaseDBConnection {
                             field
                         );
                     }
-                    many.all = queryset.$$readMethods.bind('all', field);
-                    many.fetch = queryset.$$readMethods.bind('fetch', field);
-                    many.filter = queryset.$$readMethods.bind('filter', field);
                 });
             }
         }
