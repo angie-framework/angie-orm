@@ -55,7 +55,6 @@ class BaseDBConnection {
         return this._models;
     }
     all(args = {}, fetchQuery = '', filterQuery = '') {
-        console.log('ALL ARGS', args);
         if (!args.model || !args.model.name) {
             throw new $$InvalidModelReferenceError();
         }
@@ -73,6 +72,8 @@ class BaseDBConnection {
     fetch(args = {}, filterQuery = '') {
         let ord = 'ASC';
 
+        console.log('IN');
+
         if (
             (args.head && args.head === false) ||
             (args.tail && args.tail === true)
@@ -85,6 +86,7 @@ class BaseDBConnection {
         return this.all(args, fetchQuery, filterQuery);
     }
     filter(args = {}) {
+        console.log('do i get here');
         return this.fetch(args, this.$$filterQuery(args));
     }
 
@@ -104,8 +106,14 @@ class BaseDBConnection {
         let filterQuery = [],
             fn = function(k, v) {
 
+                console.log(v);
+                // If we're dealing with a number...
+                if (typeof v === 'number') {
+                    return `${k}=${v}`;
+                }
+
                 // If there is a like operator, add a like phrase
-                if (v.indexOf('~') > -1) {
+                else if (v.indexOf('~') > -1) {
                     return `${k} like '%${v.replace(/~/g, '')}%'`;
                 } else if (
                     /(<=?|>=?)[^<>=]+/.test(v) &&
@@ -123,6 +131,7 @@ class BaseDBConnection {
                 // Otherwise, return equality
                 return `${k}='${v.replace(/[<>=]*/g, '')}'`;
             };
+        console.log('DO I GET HERE');
         for (let key in args) {
             if (IGNORE_KEYS.indexOf(key) > -1) {
                 continue;
@@ -133,6 +142,7 @@ class BaseDBConnection {
                 filterQuery.push(`${key} in ${this.$$queryInString(args[ key ])}`);
             }
         }
+        console.log('do i get HERE?');
         return filterQuery.length ? `${filterQuery.join(' AND ')}` : '';
     }
     create(args = {}) {
@@ -218,14 +228,13 @@ class BaseDBConnection {
     $$querySet(model, query, rows = [], errors) {
         const queryset = new AngieDBObject(this, model, query);
         let me = this,
+            results = [],
             manyToManyFieldNames = [],
             rels = [],
             relFieldNames = {},
             relArgs = {},
             proms = [];
 
-        // TODO push many to manys to an array and iterate of that array in the next block,
-        // move deletes below
         for (let key in model) {
             let field = model[ key ];
             if (field.type && field.type === 'ManyToManyField') {
@@ -233,37 +242,31 @@ class BaseDBConnection {
             }
         }
 
-        for (let key in model) {
-            let field = model[ key ];
-            if (field.type && field.type === 'ManyToManyField') {
-                rows.forEach(function(v) {
-                    let many = v[ key ] = {};
+        if (rows instanceof Array) {
+            rows.forEach(function(v) {
+                results.push(v);
+
+                for (let key of manyToManyFieldNames) {
+                    const field = model[ key ],
+                          many = v[ key ] = {};
                     for (let method of [ 'create', 'delete']) {
                         many[ method ] =
                             queryset.$$addOrRemove.bind(
-                                method,
                                 queryset,
+                                method,
                                 field,
                                 v.id
                             );
                     }
                     for (let method of [ 'all', 'fetch', 'filter' ]) {
                         many[ method ] = queryset.$$readMethods.bind(
+                            queryset,
                             method,
-                            field
+                            field,
+                            v.id
                         );
                     }
-                });
-            }
-        }
-
-        delete queryset.$$addOrRemove;
-        delete queryset.$$readMethods;
-
-        // TODO update this to work with the many to many fields ^^
-        // We want to process all of the foreign keys
-        if (rows instanceof Array) {
-            rows.forEach(function(v) {
+                }
 
                 // Find all of the foreign key fields
                 for (let key in v) {
@@ -276,6 +279,9 @@ class BaseDBConnection {
                 }
             });
         }
+
+        delete queryset.$$addOrRemove;
+        delete queryset.$$readMethods;
 
         // Instantiate a promise for each of the foreign key fields in the query
         rels.forEach(function(v) {
@@ -315,7 +321,17 @@ class BaseDBConnection {
             // Resolves to a value in the connections currently
             return util._extend(
                 rows,
-                { errors: errors },
+                {
+
+                    // The raw query results
+                    results: results,
+
+                    // Any errors
+                    errors: errors,
+
+                    first: AngieDBObject.prototype.first,
+                    last: AngieDBObject.prototype.last
+                },
                 queryset
             );
         });

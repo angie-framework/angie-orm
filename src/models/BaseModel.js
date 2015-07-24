@@ -39,7 +39,8 @@ class BaseModel {
         ).fetch(args);
     }
     filter(args = {}) {
-        console.log(args, this);
+        console.log('ARGS', args);
+
         args.model = this;
 
         // Returns a filtered subset of rows
@@ -113,9 +114,11 @@ class BaseModel {
 
         // This forces the router to use a specific database, DB can also be
         // forced at a model level by using this.database
+        console.log('AngieDBObject', AngieDBObject);
         this.$$database = AngieDatabaseRouter(
             database || this.database || 'default'
         );
+        console.log('RESOLVED', this.$$database.filter);
         return this.$$database;
     }
 }
@@ -199,32 +202,25 @@ class AngieDBObject {
         util._extend(args, updateObj);
         return this.database.update(args);
     }
+    first() {
+        return this[0];
+    }
+    last() {
+        return this.pop();
+    }
     $$addOrRemove(method, field, id, obj) {
-
-        // TODO verify that this is called with a many to many reference
         return field.crossReferenceTable[ method ]({
             [ `${field.name}_id`]: id,
             [ `${field.rel}_id` ]: obj.id
         });
     }
-    $$readMethods(method, field, args) {
+    $$readMethods(method, field, id, args) {
+        args.id = id;
+
+        method = [ 'filter', 'fetch' ].indexOf(method) > -1 ? method : 'filter';
+        console.log('METHOD', field.crossReferenceTable.filter);
         return field.crossReferenceTable[ method ](args);
     }
-    // $$add(field, id, obj) {
-    //     return $$addOrDelete('create', field, id, obj);
-    // }
-    // $$remove(field, id, obj) {
-    //     return $$addOrDelete('delete', field, id, obj);
-    // }
-    // $$all(field, args) {
-    //     return field.crossReferenceTable.all(args);
-    // }
-    // $$fetch(field, args) {
-    //     return field.crossReferenceTable.fetch(args);
-    // }
-    // $$filter(field, args) {
-    //     return field.crossReferenceTable.filter(args);
-    // }
 }
 
 // TODO update references to base model for default export

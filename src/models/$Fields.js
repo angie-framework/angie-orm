@@ -120,8 +120,6 @@ class ForeignKeyField extends BaseField {
             return;
         }
 
-        console.log('ARGS', args);
-
         this.nesting = true;
         this.deepNesting = false;
         if (args && typeof args === 'object') {
@@ -142,7 +140,7 @@ class ManyToManyField extends ForeignKeyField {
 
         this.type = 'ManyToManyField';
         this.name = args.alias || args.name;
-        if (!name) {
+        if (!this.name) {
             throw new $$InvalidFieldConfigError(
                 this.type,
                 `${cyan(`${this.type}s`)} require name or alias in their ` +
