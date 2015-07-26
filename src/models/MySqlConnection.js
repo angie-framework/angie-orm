@@ -16,6 +16,7 @@ import {
 const p = process,
       DEFAULT_HOST = '127.0.0.1',
       DEFAULT_PORT = 3306;
+$LogProvider.mysqlInfo = $LogProvider.info.bind(null, 'MySQL');
 
 export default class MySqlConnection extends BaseDBConnection {
     constructor(name, database, destructive, dryRun) {
@@ -39,6 +40,8 @@ export default class MySqlConnection extends BaseDBConnection {
                     throw new $$InvalidDatabaseConfigError(db);
                 }
             });
+
+            this.connected = false;
         }
     }
     types(field) {
@@ -63,25 +66,32 @@ export default class MySqlConnection extends BaseDBConnection {
     connect() {
         let me = this;
         return new Promise(function(resolve) {
-            return me.connection.connect(function() {
-                $LogProvider.info('Connection successful');
-                resolve();
-            });
+            if (me.connected === false) {
+                me.connection.connect(function(e) {
+
+                    // TODO add this back in?
+                    // if (e) {
+                    //     throw new $$DatabaseConnectivityError(me.database);
+                    // }
+                    me.connected = true;
+                    $LogProvider.mysqlInfo('Connection successful');
+                });
+            }
+            resolve();
         });
     }
     disconnect() {
-        return this.connection.end();
+        this.connection.end();
+        this.connected = false;
     }
     run(query, model) {
         let me = this,
             db = this.database,
             name = db.name || db.alias;
-        return new Promise(function(resolve) {
-            return me.connect().then(resolve);
-        }).then(function() {
+        return this.connect().then(function() {
             return new Promise(function(resolve) {
-                $LogProvider.info(
-                    `MySql Query: ${cyan(name)}: ${magenta(query)}`
+                $LogProvider.mysqlInfo(
+                    `Query: ${cyan(name)}: ${magenta(query)}`
                 );
                 return me.connection.query(query, function(e, rows = []) {
                     if (e) {
@@ -138,8 +148,6 @@ export default class MySqlConnection extends BaseDBConnection {
             }
             return Promise.all(proms).then(function() {
                 return me.migrate();
-            }).then(function() {
-                return me.disconnect();
             });
         });
     }
@@ -170,7 +178,7 @@ export default class MySqlConnection extends BaseDBConnection {
                             if (!me.dryRun) {
                                 proms.push(me.run(query));
                             } else {
-                                $LogProvider.info(
+                                $LogProvider.mysqlInfo(
                                     `Dry Run Query: ${gray(query)}`
                                 );
                             }
@@ -206,7 +214,7 @@ export default class MySqlConnection extends BaseDBConnection {
                             if (!me.dryRun) {
                                 proms.push(me.run(query));
                             } else {
-                                $LogProvider.info(
+                                $LogProvider.mysqlInfo(
                                     `Dry Run Query: ${gray(query)}`
                                 );
                             }
@@ -218,7 +226,8 @@ export default class MySqlConnection extends BaseDBConnection {
             }
             return Promise.all(proms);
         }).then(function() {
-            $LogProvider.info(
+            me.disconnect();
+            $LogProvider.mysqlInfo(
                 `Successfully Synced & Migrated ${cyan(
                     me.database.name || me.database.alias
                  )}`

@@ -44,7 +44,9 @@ class $$InvalidModelReferenceError extends Error {
 
 class $$InvalidModelFieldReferenceError extends Error {
     constructor(name = '', field) {
-        super(bread(`Invalid param for Model ${name}@${field}`));
+        $LogProvider.error(`Invalid param for Model ${name}@${field}`);
+        super();
+        p.exit(1);
     }
 }
 

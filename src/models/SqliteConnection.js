@@ -17,6 +17,7 @@ import {
 sqlite3.verbose();
 
 const p = process;
+$LogProvider.sqliteInfo = $LogProvider.info.bind(null, 'Sqlite');
 
 export default class SqliteConnection extends BaseDBConnection {
     constructor(database, destructive, dryRun) {
@@ -50,7 +51,7 @@ export default class SqliteConnection extends BaseDBConnection {
         if (!this.connection) {
             try {
                 this.connection = new sqlite3.Database(db.name);
-                $LogProvider.info('Connection successful');
+                $LogProvider.sqliteInfo('Connection successful');
             } catch(err) {
                 throw new $$DatabaseConnectivityError(db);
             }
@@ -69,10 +70,10 @@ export default class SqliteConnection extends BaseDBConnection {
             db = this.database,
             name = db.name || db.alias;
         return new Promise(function(resolve) {
-            $LogProvider.info(`Sqlite3 Query: ${cyan(name)}: ${magenta(query)}`);
             return me.serialize(resolve);
         }).then(function() {
             return new Promise(function(resolve) {
+                $LogProvider.sqliteInfo(`Query: ${cyan(name)}: ${magenta(query)}`);
                 return me.connection[ key ](query, function(e, rows = []) {
                     if (e) {
                         $LogProvider.warn(e);
@@ -136,8 +137,6 @@ export default class SqliteConnection extends BaseDBConnection {
             }
             return Promise.all(proms).then(function() {
                 return me.migrate();
-            }).then(function() {
-                return me.disconnect();
             });
         });
     }
@@ -190,13 +189,14 @@ export default class SqliteConnection extends BaseDBConnection {
                     if (!me.dryRun) {
                         proms.push(me.run(query));
                     } else {
-                        $LogProvider.info(`Dry Run Query: ${gray(query)}`);
+                        $LogProvider.sqliteInfo(`Dry Run Query: ${gray(query)}`);
                     }
                 });
             }
             return Promise.all(proms);
         }).then(function() {
-            $LogProvider.info(
+            me.disconnect();
+            $LogProvider.sqliteInfo(
                 `Successfully Synced & Migrated ${cyan(
                     me.database.name || me.database.alias
                  )}`

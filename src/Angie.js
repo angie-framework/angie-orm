@@ -8,7 +8,7 @@ import {$injectionBinder} from      'angie-injector';
 import $LogProvider from            'angie-log';
 
 // Angie ORM Modules
-import {BaseModel} from             './models/BaseModel';
+import BaseModel from               './models/BaseModel';
 import * as $$FieldProvider from    './models/$Fields';
 
 

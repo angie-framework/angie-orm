@@ -13,7 +13,8 @@ import {
 } from                                  '../util/$ExceptionsProvider';
 
 // Keys we do not necessarily want to parse as query arguments
-const app = global.app,
+const p = process,
+      app = global.app,
       IGNORE_KEYS = [
           'database',
           'tail',
@@ -45,6 +46,7 @@ class BaseDBConnection {
         this.dryRun = dryRun;
     }
     name(modelName) {
+        console.log(modelName);
         modelName = modelName.replace(/([A-Z])/g, '_$1').toLowerCase();
         if (modelName.charAt(0) === '_') {
             modelName = modelName.slice(1, modelName.length);
@@ -66,13 +68,13 @@ class BaseDBConnection {
                 values.unshift('id');
             }
         }
-        return `SELECT ${values} FROM ${args.model.name} ` +
-            `${filterQuery ? `WHERE ${filterQuery}` : ''} ${fetchQuery};`;
+
+        return `SELECT ${values} FROM ${args.model.name}` +
+            `${filterQuery ? ` WHERE ${filterQuery}` : ''}` +
+            `${fetchQuery ? ` ${fetchQuery}` : ''};`;
     }
     fetch(args = {}, filterQuery = '') {
         let ord = 'ASC';
-
-        console.log('IN');
 
         if (
             (args.head && args.head === false) ||
@@ -86,7 +88,6 @@ class BaseDBConnection {
         return this.all(args, fetchQuery, filterQuery);
     }
     filter(args = {}) {
-        console.log('do i get here');
         return this.fetch(args, this.$$filterQuery(args));
     }
 
@@ -106,7 +107,6 @@ class BaseDBConnection {
         let filterQuery = [],
             fn = function(k, v) {
 
-                console.log(v);
                 // If we're dealing with a number...
                 if (typeof v === 'number') {
                     return `${k}=${v}`;
@@ -131,7 +131,6 @@ class BaseDBConnection {
                 // Otherwise, return equality
                 return `${k}='${v.replace(/[<>=]*/g, '')}'`;
             };
-        console.log('DO I GET HERE');
         for (let key in args) {
             if (IGNORE_KEYS.indexOf(key) > -1) {
                 continue;
@@ -142,7 +141,6 @@ class BaseDBConnection {
                 filterQuery.push(`${key} in ${this.$$queryInString(args[ key ])}`);
             }
         }
-        console.log('do i get HERE?');
         return filterQuery.length ? `${filterQuery.join(' AND ')}` : '';
     }
     create(args = {}) {
@@ -226,6 +224,8 @@ class BaseDBConnection {
         });
     }
     $$querySet(model, query, rows = [], errors) {
+        console.log('queryset');
+
         const queryset = new AngieDBObject(this, model, query);
         let me = this,
             results = [],
@@ -235,6 +235,7 @@ class BaseDBConnection {
             relArgs = {},
             proms = [];
 
+        console.log('KEEEEEEEYS!', Object.keys(model));
         for (let key in model) {
             let field = model[ key ];
             if (field.type && field.type === 'ManyToManyField') {
@@ -242,14 +243,17 @@ class BaseDBConnection {
             }
         }
 
+        console.log('MANY', manyToManyFieldNames);
+
         if (rows instanceof Array) {
             rows.forEach(function(v) {
-                results.push(v);
+                let $v = util._extend([], v);
+                results.push($v);
 
                 for (let key of manyToManyFieldNames) {
                     const field = model[ key ],
                           many = v[ key ] = {};
-                    for (let method of [ 'create', 'delete']) {
+                    for (let method of [ 'add', 'remove' ]) {
                         many[ method ] =
                             queryset.$$addOrRemove.bind(
                                 queryset,
@@ -350,7 +354,9 @@ class $$DatabaseConnectivityError extends Error {
             default:
                 message = `Could not find ${cyan(database.name)} in filesystem.`;
         }
-        super($$err(message));
+        $LogProvider.error(message);
+        super();
+        p.exit(1);
     }
 }
 

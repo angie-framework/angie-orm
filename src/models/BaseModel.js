@@ -39,7 +39,7 @@ class BaseModel {
         ).fetch(args);
     }
     filter(args = {}) {
-        console.log('ARGS', args);
+        console.log('ARGS', args, this);
 
         args.model = this;
 
@@ -50,8 +50,9 @@ class BaseModel {
         ).filter(args);
     }
     exists() {
-        return this.filter.apply(this, arguments).then(function(querySet) {
-            return !!querySet.length;
+        return this.filter.apply(this, arguments).then(function(queryset) {
+            console.log('first queryset', queryset);
+            return !!queryset[0];
         });
     }
     create(args = {}) {
@@ -78,6 +79,11 @@ class BaseModel {
 
         // Once that is settled, we can call our create
         return this.database.create(args);
+    }
+    createUnlessExists(args = {}) {
+        return this.database.exists(args).then((v) =>
+            me.database[ v ? 'fetch' : 'create' ](args)
+        );
     }
     delete(args = {}) {
         args.model = this;
@@ -114,11 +120,9 @@ class BaseModel {
 
         // This forces the router to use a specific database, DB can also be
         // forced at a model level by using this.database
-        console.log('AngieDBObject', AngieDBObject);
         this.$$database = AngieDatabaseRouter(
             database || this.database || 'default'
         );
-        console.log('RESOLVED', this.$$database.filter);
         return this.$$database;
     }
 }
@@ -176,7 +180,7 @@ class AngieDBObject {
         this.model = model;
         this.query = query;
     }
-    update(args = {}) {
+    $$update(args = {}) {
         args.model = this.model;
         args.rows = this;
         if (typeof args !== 'object') {
@@ -209,13 +213,34 @@ class AngieDBObject {
         return this.pop();
     }
     $$addOrRemove(method, field, id, obj) {
-        return field.crossReferenceTable[ method ]({
-            [ `${field.name}_id`]: id,
-            [ `${field.rel}_id` ]: obj.id
+        console.log(`in ${method}`);
+
+        // Change aliases
+        switch (method) {
+            case 'add ':
+                method = 'createUnlessExists';
+            default:
+                method = 'remove';
+        }
+
+        // Check to see that there is an existing related object
+        return global.app.Models[ field.rel ].exists(obj).then(function(v) {
+            console.log('there', v, obj);
+
+            // Check to see if a reference already exists <->
+            if (v) {
+                return field.crossReferenceTable[ method ]({
+                    [ `${field.name}_id`]: id,
+                    [ `${field.rel}_id` ]: obj.id
+                });
+            }
+            throw new Error();
+        }).catch(function() {
+            throw new $$InvalidRelationCrossReferenceError(method, field, id, obj);
         });
     }
     $$readMethods(method, field, id, args) {
-        args.id = id;
+        args[ `${field.name}_id` ] = id;
 
         method = [ 'filter', 'fetch' ].indexOf(method) > -1 ? method : 'filter';
         console.log('METHOD', field.crossReferenceTable.filter);
@@ -223,9 +248,16 @@ class AngieDBObject {
     }
 }
 
-// TODO update references to base model for default export
+class $$InvalidRelationCrossReferenceError extends RangeError {
+    constructor(method, field, id, obj, error = '') {
+        $LogProvider.error(
+            `Cannot ${method} reference on ${cyan(field.name)}: ` +
+            'No such existing record.'
+        );
+        super();
+        p.exit(1);
+    }
+}
+
 export default BaseModel;
-export {
-    BaseModel,
-    AngieDBObject
-};
+export {AngieDBObject};

@@ -112,22 +112,38 @@ class IntegerField extends BaseField {
     }
 }
 
-class ForeignKeyField extends BaseField {
-    constructor(rel, args) {
+class KeyField extends IntegerField {
+    constructor() {
         super(1);
-        if (!rel) {
-            $LogProvider.warn('Invalid relative field in constrained field');
-            return;
+        this.type = 'KeyField';
+        this.unique = false;
+        this.minValue = 1;
+        this.maxLength = 11;
+    }
+}
+
+class ForeignKeyField extends KeyField {
+    constructor(rel, args) {
+        super(args);
+
+        this.type = 'ForeignKeyField';
+
+        if (!rel || !app.Models[ rel ]) {
+            throw new $$InvalidFieldConfigError(
+                this.type,
+                `Invalid relative model ${rel ? `${cyan(rel)} ` : ''}` +
+                'in constrained field declaration'
+            );
         }
 
-        this.nesting = true;
-        this.deepNesting = false;
+        this.nesting = this.deepNesting = false;
         if (args && typeof args === 'object') {
-            this.nesting = args.hasOwnProperty('nesting') ? !!args.nesting : true;
 
-            // TODO deep nesting
-            this.deepNesting = args.hasOwnProperty('deepNesting') ?
-                !!args.nesting : true;
+            if (args.hasOwnProperty('deepNesting')) {
+                this.nesting = this.deepNesting = true;
+            } else {
+                this.nesting = args.hasOwnProperty('nesting');
+            }
         }
         this.rel = rel;
         this.type = 'ForeignKeyField';
@@ -139,32 +155,37 @@ class ManyToManyField extends ForeignKeyField {
         super(rel, args);
 
         this.type = 'ManyToManyField';
+
         this.name = args.alias || args.name;
         if (!this.name) {
             throw new $$InvalidFieldConfigError(
                 this.type,
-                `${cyan(`${this.type}s`)} require name or alias in their ` +
-                `configuration`
+                `${cyan(`${this.type}s`)} require name to be included in ` +
+                'configuration and to be valid model'
             );
         }
 
-        // TODO should be parent table id, sub parent table id
-        this.crossReferenceTableId = args.tableName || `${this.name}_${this.rel}_id`;
-        global.app.Model(this.crossReferenceTableId, {
-            [ `${this.name}_id` ]: new IntegerField({
-                unique: true,
-                minValue: 1,
-                maxLength: 11
-            }),
-            [ `${this.rel}_id` ]: new IntegerField({
-                unique: true,
-                minValue: 1,
-                maxLength: 11
-            })
-        });
-
         // Setup a reference to the relationship model
-        this.crossReferenceTable = global.app.Models[ this.crossReferenceTableId ];
+        this.crossReferenceTableId = args.tableName || `${this.name}_${this.rel}_id`;
+        if (!args.crossReferenceTable) {
+            global.app.Model(this.crossReferenceTableId, {
+                [ `${this.name}_id` ]: new KeyField(),
+                [ `${this.rel}_id` ]: new KeyField()
+            });
+            this.crossReferenceTable = global.app.Models[
+                this.crossReferenceTableId
+            ];
+
+            // Now that we've got our parent model set up, we need the reverse
+            // global.app.Model[ this.rel ][ this.name ] = new ManyToManyField(this.name, {
+            //     crossReferenceTableId: this.crossReferenceTableId,
+            //     crossReferenceTable: this.crossReferenceTable,
+            //     name: this.rel
+            // });
+        } else {
+            this.crossReferenceTableId = args.crossReferenceTableId;
+            this.crossReferenceTable = args.crossReferenceTable;
+        }
     }
 }
 
