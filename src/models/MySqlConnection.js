@@ -68,7 +68,9 @@ export default class MySqlConnection extends BaseDBConnection {
     connect() {
         let me = this;
         return new Promise(function(resolve) {
+            console.log('in connect');
             if (me.connected === false) {
+                console.log('connecting');
                 me.connection.connect(function(e) {
 
                     // TODO add this back in?
@@ -76,9 +78,11 @@ export default class MySqlConnection extends BaseDBConnection {
                     //     throw new $$DatabaseConnectivityError(me.database);
                     // }
                     me.connected = true;
+                    console.log('connected');
                     $LogProvider.mysqlInfo('Connection successful');
                 });
             }
+            console.log('RESOLVED');
             resolve();
         });
     }
@@ -87,10 +91,12 @@ export default class MySqlConnection extends BaseDBConnection {
         this.connected = false;
     }
     run(query, model) {
+        console.log('in run', model, query);
         let me = this,
             db = this.database,
             name = this.name;
         return this.connect().then(function() {
+            console.log('DO I GET HERE');
             return new Promise(function(resolve) {
                 $LogProvider.mysqlInfo(
                     `Query: ${cyan(name)}: ${magenta(query)}`
@@ -104,6 +110,8 @@ export default class MySqlConnection extends BaseDBConnection {
             });
         }).then(function(args) {
             return me.$$querySet(model, query, args[0], args[1]);
+        }).catch(function(e) {
+            console.log(e);
         });
     }
     all() {

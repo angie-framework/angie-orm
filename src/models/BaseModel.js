@@ -41,16 +41,21 @@ class BaseModel {
     filter(args = {}) {
         args.model = this;
 
+        console.log('last line of filter');
+
         // Returns a filtered subset of rows
         return this.$$prep.apply(
             this,
             arguments
         ).filter(args);
     }
-    exists() {
+    exists(args = {}) {
+        args.model = args.model || this;
         return this.filter.apply(this, arguments).then(function(queryset) {
             console.log('first queryset', queryset);
             return !!queryset[0];
+        }).catch(function(e) {
+            console.log(e);
         });
     }
     create(args = {}) {
@@ -177,20 +182,16 @@ class AngieDBObject {
         return this.pop();
     }
     $$addOrRemove(method, field, id, obj, extra) {
-        console.log(`in METHOD ${method}`);
-
-        // Change aliases
         switch (method) {
             case 'add':
                 method = '$createUnlessExists';
                 break;
-            default:
+            default: // Remove
                 method = 'delete';
         }
 
+        // Get database, other extra options
         obj = util._extend(obj, extra);
-
-        console.log('here', global.app.Models[ field.rel ]);
 
         // Check to see that there is an existing related object
         return global.app.Models[ field.rel ].exists(obj).then(function(v) {
@@ -202,8 +203,6 @@ class AngieDBObject {
                     [ `${field.name}_id`]: id,
                     [ `${field.rel}_id` ]: obj.id
                 }, extra);
-
-                console.log('METHOD', method);
                 return field.crossReferenceTable[ method ]($obj);
             }
             throw new Error();
@@ -213,7 +212,6 @@ class AngieDBObject {
     }
     $$readMethods(method, field, id, args) {
         args[ `${field.name}_id` ] = id;
-
         method = [ 'filter', 'fetch' ].indexOf(method) > -1 ? method : 'filter';
         console.log('METHOD', field.crossReferenceTable.filter);
         return field.crossReferenceTable[ method ](args);
