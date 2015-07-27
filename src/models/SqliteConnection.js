@@ -27,6 +27,7 @@ export default class SqliteConnection extends BaseDBConnection {
         if (!db.name) {
             throw new $$InvalidDatabaseConfigError();
         }
+        this.name = this.database.name || this.database.alias;
     }
     types(field) {
         let type = field.type;
@@ -50,7 +51,7 @@ export default class SqliteConnection extends BaseDBConnection {
         let db = this.database;
         if (!this.connection) {
             try {
-                this.connection = new sqlite3.Database(db.name);
+                this.connection = new sqlite3.Database(this.name);
                 $LogProvider.sqliteInfo('Connection successful');
             } catch(err) {
                 throw new $$DatabaseConnectivityError(db);
@@ -68,7 +69,7 @@ export default class SqliteConnection extends BaseDBConnection {
     query(query, model, key) {
         let me = this,
             db = this.database,
-            name = db.name || db.alias;
+            name = this.name;
         return new Promise(function(resolve) {
             return me.serialize(resolve);
         }).then(function() {
@@ -110,14 +111,13 @@ export default class SqliteConnection extends BaseDBConnection {
     sync() {
         let me = this;
         super.sync().then(function() {
-            let db = me.database,
-                proms = [];
+            let proms = [];
 
             // TODO test this in another directory
-            if (!fs.existsSync(db.name)) {
+            if (!fs.existsSync(me.name)) {
 
                 // Connection does not exist and we must touch the db file
-                fs.closeSync(fs.openSync(db.name, 'w'));
+                fs.closeSync(fs.openSync(me.name, 'w'));
             }
 
             let models = me.models();
@@ -126,7 +126,7 @@ export default class SqliteConnection extends BaseDBConnection {
                 // Fetch models and get model name
                 let instance = models[ model ],
                     modelName = instance.name || instance.alias ||
-                        me.name(instance);
+                        me.$$name(instance);
 
                 // Run a table creation with an ID for each table
                 proms.push(me.run(
@@ -149,7 +149,7 @@ export default class SqliteConnection extends BaseDBConnection {
 
             for (let key in models) {
                 const model = models[ key ],
-                      modelName = me.name(model.name || model.alias),
+                      modelName = me.$$name(model.name || model.alias),
                       fields = model.$fields();
                 if (me.destructive && logged) {
 
@@ -197,9 +197,7 @@ export default class SqliteConnection extends BaseDBConnection {
         }).then(function() {
             me.disconnect();
             $LogProvider.sqliteInfo(
-                `Successfully Synced & Migrated ${cyan(
-                    me.database.name || me.database.alias
-                 )}`
+                `Successfully Synced & Migrated ${cyan(me.name)}`
             );
             p.exit(0);
         });

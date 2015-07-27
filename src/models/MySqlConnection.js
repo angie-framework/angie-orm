@@ -21,18 +21,18 @@ $LogProvider.mysqlInfo = $LogProvider.info.bind(null, 'MySQL');
 export default class MySqlConnection extends BaseDBConnection {
     constructor(name, database, destructive, dryRun) {
         super(database, destructive, dryRun);
-
         let db = this.database;
 
         if (!db.username) {
             throw new $$InvalidDatabaseConfigError(db);
         } else if (!this.connection) {
+            this.name = name || this.database.name || this.database.alias;
             this.connection = mysql.createConnection({
                 host: db.host || DEFAULT_HOST,
                 port: db.port || DEFAULT_PORT,
                 user: db.username || '',
                 password: db.password || '',
-                database: name || db.name || db.alias
+                database: this.name
             });
 
             this.connection.on('error', function() {
@@ -87,7 +87,7 @@ export default class MySqlConnection extends BaseDBConnection {
     run(query, model) {
         let me = this,
             db = this.database,
-            name = db.name || db.alias;
+            name = this.name;
         return this.connect().then(function() {
             return new Promise(function(resolve) {
                 $LogProvider.mysqlInfo(
@@ -136,7 +136,7 @@ export default class MySqlConnection extends BaseDBConnection {
                 // Fetch models and get model name
                 let instance = models[ model ],
                     modelName = instance.name || instance.alias ||
-                        me.name(model);
+                        me.$$name(model);
 
                 // Run a table creation with an ID for each table
                 proms.push(me.run(
@@ -154,85 +154,97 @@ export default class MySqlConnection extends BaseDBConnection {
     migrate() {
         let me = this;
         return super.migrate().then(function() {
+            return me.run('SHOW TABLES').then((queryset) => queryset);
+        }).then(function(queryset) {
+            const modelMap = [
+                for (model of queryset) model[ `Tables_in_${me.name}` ]
+            ];
             let models = me.models(),
                 proms = [];
-            for (let key in models) {
-                const model = models[ key ],
-                      modelName = me.name(model.name || model.alias),
-                      fields = model.$fields();
-                let prom = me.run(
-                    `SHOW COLUMNS from \`${modelName}\`;`,
-                    modelName
-                ).then(function(queryset) {
-                    let proms = [];
+            for (let key of modelMap) {
+                let prom;
+                if (!models.hasOwnProperty(key)) {
 
-                    // TODO you've got to drop the many to many here
-                    queryset.forEach(function(v) {
-                        if (
-                            fields.indexOf(v.Field) === -1 &&
-                            v.Field !== 'id' &&
-                            me.destructive
-                        ) {
-                            let query =
-                                `ALTER TABLE \`${modelName}\` DROP COLUMN \`${v.Field}\`;`;
-                            if (!me.dryRun) {
-                                proms.push(me.run(query));
-                            } else {
-                                $LogProvider.mysqlInfo(
-                                    `Dry Run Query: ${gray(query)}`
-                                );
-                            }
-                        }
-                    });
-
-                    // TODO you've got to return if many to many here
-                    fields.forEach(function(v) {
-                        if (model[ v ].type === 'ManyToManyField') {
-                            return;
-                        }
-                        if (queryset.map(($v) => $v.Field).indexOf(v) === -1) {
-                            let query,
-                                $default;
-                            if (model[ v ].default) {
-                                $default = model[ v ].default;
-                                if (typeof $default === 'function') {
-                                    $default = $default();
+                    // Don't consolidate, we don't want to look at the fields
+                    if (me.destructive) {
+                        prom = me.run(`DROP TABLE \`${key}\`;`);
+                    }
+                } else {
+                    const model = models[ key ],
+                          modelName = me.$$name(model.name || model.alias),
+                          fields = model.$fields();
+                    prom = me.run(
+                        `SHOW COLUMNS from \`${modelName}\`;`,
+                        modelName
+                    ).then(function(queryset) {
+                        let proms = [];
+                        queryset.forEach(function(v) {
+                            if (
+                                fields.indexOf(v.Field) === -1 &&
+                                v.Field !== 'id' &&
+                                me.destructive
+                            ) {
+                                let query =
+                                    `ALTER TABLE \`${modelName}\` DROP COLUMN \`${v.Field}\`;`;
+                                if (!me.dryRun) {
+                                    proms.push(me.run(query));
+                                } else {
+                                    $LogProvider.mysqlInfo(
+                                        `Dry Run Query: ${gray(query)}`
+                                    );
                                 }
                             }
-                            query =
-                                `ALTER TABLE \`${modelName}\` ADD COLUMN \`${v}\` ` +
-                                `${me.types(model[ v ])}(` +
-                                (
-                                    model[ v ].maxLength ?
-                                    `${model[ v ].maxLength}` : '255'
-                                ) +
-                                `)${model[ v ].constructor.name ===
-                                    'ForeignKeyField' && model[ v ].nullable ? '' :
-                                    ' NOT NULL'}` +
-                                `${model[ v ].unique ? ' UNIQUE' : ''}` +
-                                `${$default ? ` DEFAULT '${$default}'` : ''};`
-                            if (!me.dryRun) {
-                                proms.push(me.run(query));
-                            } else {
-                                $LogProvider.mysqlInfo(
-                                    `Dry Run Query: ${gray(query)}`
-                                );
+                        });
+
+                        // TODO you've got to return if many to many here
+                        fields.forEach(function(v) {
+                            if (model[ v ].type === 'ManyToManyField') {
+                                return;
                             }
-                        }
+                            if (queryset.map(($v) => $v.Field).indexOf(v) === -1) {
+                                let query,
+                                    $default;
+                                if (model[ v ].default) {
+                                    $default = model[ v ].default;
+                                    if (typeof $default === 'function') {
+                                        $default = $default();
+                                    }
+                                }
+                                query =
+                                    `ALTER TABLE \`${modelName}\` ADD COLUMN \`${v}\` ` +
+                                    `${me.types(model[ v ])}(` +
+                                    (
+                                        model[ v ].maxLength ?
+                                        `${model[ v ].maxLength}` : '255'
+                                    ) +
+                                    `)${model[ v ].constructor.name ===
+                                        'ForeignKeyField' && model[ v ].nullable ? '' :
+                                        ' NOT NULL'}` +
+                                    `${model[ v ].unique ? ' UNIQUE' : ''}` +
+                                    `${$default ? ` DEFAULT '${$default}'` : ''};`
+                                if (!me.dryRun) {
+                                    proms.push(me.run(query));
+                                } else {
+                                    $LogProvider.mysqlInfo(
+                                        `Dry Run Query: ${gray(query)}`
+                                    );
+                                }
+                            }
+                        });
+                        return Promise.all(proms);
                     });
-                    return Promise.all(proms);
-                });
+                }
                 proms.push(prom);
             }
             return Promise.all(proms);
         }).then(function() {
             me.disconnect();
             $LogProvider.mysqlInfo(
-                `Successfully Synced & Migrated ${cyan(
-                    me.database.name || me.database.alias
-                 )}`
+                `Successfully Synced & Migrated ${cyan(me.name)}`
             );
             p.exit(0);
-        });
+        }).catch(function(e) {
+            console.log(e);
+        })
     }
 }

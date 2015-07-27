@@ -52,36 +52,52 @@ class BaseField {
 
         // TODO this method is not responsible for migrating a model, only
         // creating a field in a record when the model is instantiated
-        if (
-            this.default &&
-            this.validate(this.default)
-        ) {
-            this.value = typeof this.default === 'function' ? this.default() :
-                this.default;
+        if (this.default) {
+            if (this.validate(this.default)) {
+                this.value = typeof this.default === 'function' ? this.default() :
+                    this.default;
+            } else {
+                throw new $$InvalidFieldConfigError(
+                    this.type,
+                    'Invalid default value'
+                );
+            }
         }
     }
     validate(value) {
-        value = value || this.value;
+
+        // TODO is this necessary?
+        // value = value || this.value;
         if (!value && !this.nullable) {
             return false;
         }
-        if (typeof value === 'string') {
-            if (
-                (this.minLength && value.length <= this.minLength) ||
-                (this.maxLength && value.length >= this.maxLength)
-            ) {
-                return false;
-            }
-            return true;
-        } else {
-            if (
-                (this.minValue && value <= this.minValue) ||
-                (this.maxValue && value >= this.maxValue)
-            ) {
-                return false;
-            }
-            return true;
+        if (
+            typeof value === 'string' &&
+            (
+                (
+                    this.minLength &&
+                    value.length < this.minLength
+                ) ||
+                (
+                    this.maxLength &&
+                    value.length > this.maxLength
+                )
+            )
+        ) {
+            return false;
+        } else if (
+            (
+                this.minValue &&
+                value < this.minValue
+            ) ||
+            (
+                this.maxValue &&
+                value > this.maxValue
+            )
+        ) {
+            return false;
         }
+        return true;
     }
 }
 

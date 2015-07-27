@@ -64,8 +64,12 @@ class BaseModel {
         let createObj = {},
             me = this;
 
+        console.log(args);
+
         this.$fields().forEach(function(field) {
             const val = args[ field ] || null;
+            console.log(val);
+            console.log(me[ field ].validate(val));
             if (
                 me[ field ] &&
                 me[ field ].validate &&
@@ -73,16 +77,21 @@ class BaseModel {
             ) {
                 createObj[ field ] = val;
             } else {
-                throw new $$InvalidModelFieldReference(me.name, field);
+                console.log(field);
+                throw new $$InvalidModelFieldReferenceError(me.name, field);
             }
         });
 
         // Once that is settled, we can call our create
         return this.database.create(args);
     }
-    createUnlessExists(args = {}) {
-        return this.database.exists(args).then((v) =>
-            me.database[ v ? 'fetch' : 'create' ](args)
+    $createUnlessExists(args = {}) {
+        args.model = this;
+
+        // Check to see if a matching record exists and if not create it
+        let me = this;
+        return this.exists(args).then((v) =>
+            me[ v ? 'fetch' : 'create' ](args)
         );
     }
     delete(args = {}) {
@@ -212,16 +221,19 @@ class AngieDBObject {
     last() {
         return this.pop();
     }
-    $$addOrRemove(method, field, id, obj) {
-        console.log(`in ${method}`);
+    $$addOrRemove(method, field, id, obj, extra) {
+        console.log(`in METHOD ${method}`);
 
         // Change aliases
         switch (method) {
-            case 'add ':
-                method = 'createUnlessExists';
+            case 'add':
+                method = '$createUnlessExists';
+                break;
             default:
-                method = 'remove';
+                method = 'delete';
         }
+
+        obj = util._extend(obj, extra);
 
         // Check to see that there is an existing related object
         return global.app.Models[ field.rel ].exists(obj).then(function(v) {
@@ -229,10 +241,13 @@ class AngieDBObject {
 
             // Check to see if a reference already exists <->
             if (v) {
-                return field.crossReferenceTable[ method ]({
+                let $obj = util._extend({
                     [ `${field.name}_id`]: id,
                     [ `${field.rel}_id` ]: obj.id
-                });
+                }, extra);
+
+                console.log('METHOD', method);
+                return field.crossReferenceTable[ method ]($obj);
             }
             throw new Error();
         }).catch(function() {

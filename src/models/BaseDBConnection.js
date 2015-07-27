@@ -45,14 +45,6 @@ class BaseDBConnection {
         this.destructive = destructive;
         this.dryRun = dryRun;
     }
-    name(modelName) {
-        console.log(modelName);
-        modelName = modelName.replace(/([A-Z])/g, '_$1').toLowerCase();
-        if (modelName.charAt(0) === '_') {
-            modelName = modelName.slice(1, modelName.length);
-        }
-        return modelName;
-    }
     models() {
         return this._models;
     }
@@ -163,7 +155,7 @@ class BaseDBConnection {
             `VALUES (${values.join(', ')});`;
     }
     delete(args = {}) {
-        return `DELETE FROM ${args.model.name} ${this.$$filterQuery(args)};`;
+        return `DELETE FROM ${args.model.name} WHERE ${this.$$filterQuery(args)};`;
     }
     update(args = {}) {
         if (!args.model || !args.model.name) {
@@ -223,9 +215,7 @@ class BaseDBConnection {
             );
         });
     }
-    $$querySet(model, query, rows = [], errors) {
-        console.log('queryset');
-
+    $$querySet(model = {}, query, rows = [], errors) {
         const queryset = new AngieDBObject(this, model, query);
         let me = this,
             results = [],
@@ -235,15 +225,12 @@ class BaseDBConnection {
             relArgs = {},
             proms = [];
 
-        console.log('KEEEEEEEYS!', Object.keys(model));
         for (let key in model) {
             let field = model[ key ];
             if (field.type && field.type === 'ManyToManyField') {
                 manyToManyFieldNames.push(key);
             }
         }
-
-        console.log('MANY', manyToManyFieldNames);
 
         if (rows instanceof Array) {
             rows.forEach(function(v) {
@@ -339,6 +326,13 @@ class BaseDBConnection {
                 queryset
             );
         });
+    }
+    $$name(modelName) {
+        modelName = modelName.replace(/([A-Z])/g, '_$1').toLowerCase();
+        if (modelName.charAt(0) === '_') {
+            modelName = modelName.slice(1, modelName.length);
+        }
+        return modelName;
     }
 }
 

@@ -1,7 +1,7 @@
 'use strict'; 'use strong';
 
 // System Modules
-import {magenta} from               'chalk';
+import {magenta, cyan} from         'chalk';
 import $LogProvider from            'angie-log';
 
 const p = process;
@@ -44,7 +44,9 @@ class $$InvalidModelReferenceError extends Error {
 
 class $$InvalidModelFieldReferenceError extends Error {
     constructor(name = '', field) {
-        $LogProvider.error(`Invalid param for Model ${name}@${field}`);
+        $LogProvider.error(
+            `Invalid param for Model ${cyan(name)}.${cyan(field)}`
+        );
         super();
         p.exit(1);
     }
