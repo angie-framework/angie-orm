@@ -56,6 +56,8 @@ export default class MySqlConnection extends BaseDBConnection {
             // TODO support different size integers: TINY, SMALL, MEDIUM
             case 'IntegerField':
                 return 'INTEGER';
+            case 'KeyField':
+                return 'INTEGER';
             case 'ForeignKeyField':
                 return `INTEGER, ADD CONSTRAINT FOREIGN KEY(${field.fieldname}) ` +
                     `REFERENCES ${field.rel}(id) ON DELETE CASCADE`;

@@ -39,8 +39,6 @@ class BaseModel {
         ).fetch(args);
     }
     filter(args = {}) {
-        console.log('ARGS', args, this);
-
         args.model = this;
 
         // Returns a filtered subset of rows
@@ -95,6 +93,7 @@ class BaseModel {
         );
     }
     delete(args = {}) {
+        console.log('IN DELETE');
         args.model = this;
 
         // Delete a record/set of records
@@ -135,50 +134,6 @@ class BaseModel {
         return this.$$database;
     }
 }
-
-// "DO YOU WANT TO CHAIN!? BECAUSE THIS IS HOW YOU CHAIN!"
-// TODO this can be made much better once Promise is subclassable
-// let AngieDBObject = function(database, model, query = '') {
-//     if (!database || !model) {
-//         return;
-//     }
-//     this.database = database;
-//     this.model = model;
-//     this.query = query;
-// };
-//
-// AngieDBObject.prototype.update = function(args = {}) {
-//     args.model = this.model;
-//     args.rows = this;
-//     if (typeof args !== 'object') {
-//         return;
-//     }
-//
-//     let updateObj = {};
-//     for (let key in args) {
-//         const val = args[ key ] || null;
-//         if (IGNORE_KEYS.indexOf(key) > -1) {
-//             continue;
-//         } else if (
-//             this[ key ] &&
-//             this[ key ].validate &&
-//             this[ key ].validate(val)
-//         ) {
-//             updateObj[ key ] = val;
-//         } else {
-//             throw new $$InvalidModelFieldReferenceError(this.name, key);
-//         }
-//     }
-//
-//     util._extend(args, updateObj);
-//     return this.database.update(args);
-// };
-
-// TODO update the AngieDBObject to make it a sugared class
-// TODO make a double private method called $$add -> or just have the class itself
-// inherit from the many to many Field
-// for each row you need to add a way to grab all of the many to many REFERENCES
-// delete and add references
 
 class AngieDBObject {
     constructor(database, model, query = '') {
@@ -234,6 +189,8 @@ class AngieDBObject {
         }
 
         obj = util._extend(obj, extra);
+
+        console.log('here', global.app.Models[ field.rel ]);
 
         // Check to see that there is an existing related object
         return global.app.Models[ field.rel ].exists(obj).then(function(v) {

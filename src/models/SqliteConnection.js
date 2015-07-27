@@ -41,6 +41,8 @@ export default class SqliteConnection extends BaseDBConnection {
             // TODO support different size integers: TINY, SMALL, MEDIUM
             case 'IntegerField':
                 return 'INTEGER';
+            case 'KeyField':
+                return 'INTEGER';
             case 'ForeignKeyField':
                 return `INTEGER REFERENCES ${field.rel}(id)`;
             default:
