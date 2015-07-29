@@ -36,7 +36,7 @@ gulp.task('jscs', [ 'eslint' ], function () {
 gulp.task('mocha', function(cb) {
     let proc;
 
-    new Promise(function(resolve, reject) {
+    return new Promise(function(resolve, reject) {
         proc = gulp.src(src).pipe(
             istanbul({
                 instrumenter: Instrumenter,
@@ -80,4 +80,5 @@ gulp.task('watch', [ 'jscs', 'mocha' ], function() {
 gulp.task('watch:mocha', [ 'jscs', 'mocha' ], function() {
     gulp.watch([ src, testSrc, '../gh-pages-angie/**' ], [ 'mocha' ]);
 });
+gulp.task('test', [ 'jscs', 'mocha' ]);
 gulp.task('default', [ 'jscs', 'mocha' ]);

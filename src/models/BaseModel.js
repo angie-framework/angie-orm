@@ -41,8 +41,6 @@ class BaseModel {
     filter(args = {}) {
         args.model = this;
 
-        console.log('last line of filter');
-
         // Returns a filtered subset of rows
         return this.$$prep.apply(
             this,
@@ -52,10 +50,7 @@ class BaseModel {
     exists(args = {}) {
         args.model = args.model || this;
         return this.filter.apply(this, arguments).then(function(queryset) {
-            console.log('first queryset', queryset);
             return !!queryset[0];
-        }).catch(function(e) {
-            console.log(e);
         });
     }
     create(args = {}) {
@@ -98,7 +93,6 @@ class BaseModel {
         );
     }
     delete(args = {}) {
-        console.log('IN DELETE');
         args.model = this;
 
         // Delete a record/set of records
@@ -181,12 +175,12 @@ class AngieDBObject {
     last() {
         return this.pop();
     }
-    $$addOrRemove(method, field, id, obj, extra) {
+    $$addOrRemove(method, field, id, obj = {}, extra = {}) {
         switch (method) {
             case 'add':
                 method = '$createUnlessExists';
                 break;
-            default: // Remove
+            default: // 'remove'
                 method = 'delete';
         }
 
@@ -210,10 +204,12 @@ class AngieDBObject {
             throw new $$InvalidRelationCrossReferenceError(method, field, id, obj);
         });
     }
-    $$readMethods(method, field, id, args) {
-        args[ `${field.name}_id` ] = id;
+    $$readMethods(method, field, id, args = {}) {
+        args = util._extend(args, {
+            [ `${field.name}_id` ]: id,
+            values: [ `${field.name}_id` ]
+        });
         method = [ 'filter', 'fetch' ].indexOf(method) > -1 ? method : 'filter';
-        console.log('METHOD', field.crossReferenceTable.filter);
         return field.crossReferenceTable[ method ](args);
     }
 }
