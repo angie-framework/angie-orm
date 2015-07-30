@@ -107,8 +107,7 @@ app.Model = function Model(name, obj = {}) {
             typeof obj === 'object' ? obj : undefined;
 
     model.name = model.name || name;
-
-    let instance = new BaseModel(name);
+    let instance = new BaseModel(model.name);
 
     // Mock extend obj onto the instance
     if (typeof model === 'object') {
@@ -116,5 +115,19 @@ app.Model = function Model(name, obj = {}) {
     } else {
         throw new $$InvalidModelConfigError(name);
     }
-    return this.$$register('Models', model.name, instance);
+    this.$$register('Models', model.name, instance);
+
+    console.log(this.Models);
+
+    // We need to account for whether this Model creates a m2m reference and
+    // create the reverse
+    this.Model[ model.rel ][ model.name ] = new $$FieldProvider.ManyToManyField(
+        model.name, {
+            crossReferenceTableId: model.crossReferenceTableId,
+            crossReferenceTable: model.crossReferenceTable,
+            name: model.rel
+        }
+    );
+
+    return this;
 };
