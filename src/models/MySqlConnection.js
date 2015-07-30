@@ -245,8 +245,6 @@ export default class MySqlConnection extends BaseDBConnection {
                 `Successfully Synced & Migrated ${cyan(me.name)}`
             );
             p.exit(0);
-        }).catch(function(e) {
-            console.log(e);
-        })
+        });
     }
 }

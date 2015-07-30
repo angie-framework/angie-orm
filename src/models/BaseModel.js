@@ -62,12 +62,8 @@ class BaseModel {
         let createObj = {},
             me = this;
 
-        console.log(args);
-
         this.$fields().forEach(function(field) {
             const val = args[ field ] || null;
-            console.log(val);
-            console.log(me[ field ].validate(val));
             if (
                 me[ field ] &&
                 me[ field ].validate &&
@@ -75,7 +71,6 @@ class BaseModel {
             ) {
                 createObj[ field ] = val;
             } else {
-                console.log(field);
                 throw new $$InvalidModelFieldReferenceError(me.name, field);
             }
         });
@@ -189,7 +184,6 @@ class AngieDBObject {
 
         // Check to see that there is an existing related object
         return global.app.Models[ field.rel ].exists(obj).then(function(v) {
-            console.log('there', v, obj);
 
             // Check to see if a reference already exists <->
             if (v) {

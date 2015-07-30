@@ -53,8 +53,6 @@ class BaseDBConnection {
             throw new $$InvalidModelReferenceError();
         }
 
-        console.log('ARGS.VALUES', args.values);
-
         let values = '*';
         if (typeof args.values === 'object' && args.values.length) {
             values = args.values;
@@ -132,7 +130,6 @@ class BaseDBConnection {
             if (args[ key ] && typeof args[ key ] !== 'object') {
                 filterQuery.push(fn(key, args[ key ]));
             } else {
-                console.log('KEY', key, args[ key ]);
                 filterQuery.push(`${key} in ${this.$$queryInString(args[ key ])}`);
             }
         }
