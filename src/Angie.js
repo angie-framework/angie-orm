@@ -4,7 +4,6 @@
 import fs from                      'fs';
 import util from                    'util';
 import {blue} from                  'chalk';
-import {$injectionBinder} from      'angie-injector';
 import $LogProvider from            'angie-log';
 
 // Angie ORM Modules
@@ -103,11 +102,11 @@ app.Models = {};
  * @param {function|object} obj The Model value, returns Models params.
  */
 app.Model = function Model(name, obj = {}) {
-    const model = typeof obj === 'function' ?
-        new $injectionBinder(obj.bind(null, $$FieldProvider))() :
+    let model = typeof obj === 'function' ?
+        new obj($$FieldProvider) :
             typeof obj === 'object' ? obj : undefined;
 
-    name = typeof name === 'string' ? name : model.name;
+    model.name = model.name || name;
 
     let instance = new BaseModel(name);
 
@@ -117,5 +116,5 @@ app.Model = function Model(name, obj = {}) {
     } else {
         throw new $$InvalidModelConfigError(name);
     }
-    return this.$$register('Models', name, instance);
+    return this.$$register('Models', model.name, instance);
 };
