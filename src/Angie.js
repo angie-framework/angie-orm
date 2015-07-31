@@ -117,17 +117,19 @@ app.Model = function Model(name, obj = {}) {
     }
     this.$$register('Models', model.name, instance);
 
-    console.log(this.Models);
-
     // We need to account for whether this Model creates a m2m reference and
     // create the reverse
-    this.Model[ model.rel ][ model.name ] = new $$FieldProvider.ManyToManyField(
-        model.name, {
-            crossReferenceTableId: model.crossReferenceTableId,
-            crossReferenceTable: model.crossReferenceTable,
-            name: model.rel
+    for (let key in model) {
+        let field = model[ key ];
+        if (field.type && field.type === 'ManyToManyField') {
+            this.Models[ field.rel ][ field.name ] =
+            new $$FieldProvider.ManyToManyField(field.name, {
+                crossReferenceTableId: field.crossReferenceTableId,
+                crossReferenceTable: field.crossReferenceTable,
+                name: field.rel
+            });
         }
-    );
+    }
 
     return this;
 };

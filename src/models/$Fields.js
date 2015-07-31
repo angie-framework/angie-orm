@@ -193,6 +193,12 @@ class ManyToManyField extends ForeignKeyField {
             ];
 
             // Reverse field created in the Model declaration
+            // global.app.Models[ this.rel ][ this.name ] =
+            //     new ManyToManyField(this.name, {
+            //         crossReferenceTableId: this.crossReferenceTableId,
+            //         crossReferenceTable: this.crossReferenceTable,
+            //         name: this.rel
+            //     });
         } else {
             this.crossReferenceTableId = args.crossReferenceTableId;
             this.crossReferenceTable = args.crossReferenceTable;

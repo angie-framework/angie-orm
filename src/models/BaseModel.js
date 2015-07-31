@@ -201,7 +201,7 @@ class AngieDBObject {
     $$readMethods(method, field, id, args = {}) {
         args = util._extend(args, {
             [ `${field.name}_id` ]: id,
-            values: [ `${field.name}_id` ]
+            values: [ `${field.rel}_id` ]
         });
         method = [ 'filter', 'fetch' ].indexOf(method) > -1 ? method : 'filter';
         return field.crossReferenceTable[ method ](args);
