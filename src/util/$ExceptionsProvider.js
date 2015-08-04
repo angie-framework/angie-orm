@@ -1,45 +1,52 @@
 'use strict'; 'use strong';
 
 // System Modules
-import {red, bold} from 'chalk';
+import {red, bold, magenta} from 'chalk';
 
-export class $$InvalidConfigError extends Error {
+const bread = () => red(bold.apply(null, arguments));
+
+class $$InvalidConfigError extends Error {
     constructor(name) {
         super(
-            $$err(
-                `Invalid ${database} configuration settings. ` +
+            bread(
+                `Invalid ${name} configuration settings. ` +
                 'Please check your AngieFile.'
             )
         );
     }
 }
 
-export class $$InvalidDatabaseConfigError extends $$InvalidConfigError {
+class $$InvalidDatabaseConfigError extends $$InvalidConfigError {
     constructor() {
         super('database');
     }
 }
 
-export class $$InvalidModelConfigError extends Error {
+class $$InvalidModelConfigError extends Error {
     constructor(name) {
-        super($$err(
-            `Invalid Model configuration for model ${name} <-- ${name}Provider`
+        super(bread(
+            'Invalid Model configuration for model ' +
+            `${magenta(name)} <-- ${magenta(name)}${magenta('Provider')}`
         ));
     }
 }
 
-export class $$InvalidModelReferenceError extends Error {
+class $$InvalidModelReferenceError extends Error {
     constructor() {
-        super($$err('Invalid Model argument'));
+        super(bread('Invalid Model argument'));
     }
 }
 
-export class $$InvalidModelFieldReferenceError extends Error {
+class $$InvalidModelFieldReferenceError extends Error {
     constructor(name = '', field) {
-        super($$err(`Invalid param for Model ${name}@${field}`));
+        super(bread(`Invalid param for Model ${name}@${field}`));
     }
 }
 
-function $$err() {
-    return red(bold.apply(null, arguments));
-}
+export {
+    $$InvalidConfigError,
+    $$InvalidDatabaseConfigError,
+    $$InvalidModelConfigError,
+    $$InvalidModelReferenceError,
+    $$InvalidModelFieldReferenceError
+};

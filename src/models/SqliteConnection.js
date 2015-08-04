@@ -168,8 +168,3 @@ export default class SqliteConnection extends BaseDBConnection {
         });
     }
 }
-
-// TODO configure sync to work recursively
-// TODO prevent model duplicates?
-// TODO prevent models from installing outside of instances?
-// TODO migrate

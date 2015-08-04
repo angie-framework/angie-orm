@@ -2,7 +2,7 @@
 
 // System Modules
 import mysql from                       'mysql';
-import $LogProvider from                'angie-log/src/services/$LogProvider';
+import $LogProvider from                'angie-log';
 
 // Angie Modules
 import BaseDBConnection, {
@@ -68,7 +68,7 @@ export default class MySqlConnection extends BaseDBConnection {
             me.connection.connect(arguments[0]);
         }).then(
             () => $LogProvider.info('Connection successful'),
-            () => throw new $$InvalidDatabaseConfigError(me.database);
+            () => { throw new $$InvalidDatabaseConfigError(me.database) }
         );
     }
     disconnect() {
