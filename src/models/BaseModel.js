@@ -15,8 +15,10 @@ const IGNORE_KEYS = [
     'model',
     'name',
     'fields',
-    'save',
-    'rows'
+    'rows',
+    'update',
+    'first',
+    'last'
 ];
 
 class BaseModel {
@@ -138,9 +140,19 @@ class AngieDBObject {
         this.model = model;
         this.query = query;
     }
-    $$update(args = {}) {
+    first() {
+        return this[0];
+    }
+    last() {
+        return this.pop();
+    }
+    $$update(rows, args = {}) {
+
+        // This should only be called internally, so it's not a huge hack:
+        // rows either references the whole queryset or just a single row
+        args.rows = rows instanceof Array ? rows : [ rows ];
         args.model = this.model;
-        args.rows = this;
+
         if (typeof args !== 'object') {
             return;
         }
@@ -151,24 +163,18 @@ class AngieDBObject {
             if (IGNORE_KEYS.indexOf(key) > -1) {
                 continue;
             } else if (
-                this[ key ] &&
-                this[ key ].validate &&
-                this[ key ].validate(val)
+                this.model[ key ] &&
+                this.model[ key ].validate &&
+                this.model[ key ].validate(val)
             ) {
                 updateObj[ key ] = val;
             } else {
-                throw new $$InvalidModelFieldReferenceError(this.name, key);
+                throw new $$InvalidModelFieldReferenceError(this.model.name, key);
             }
         }
 
         util._extend(args, updateObj);
         return this.database.update(args);
-    }
-    first() {
-        return this[0];
-    }
-    last() {
-        return this.pop();
     }
     $$addOrRemove(method, field, id, obj = {}, extra = {}) {
         switch (method) {

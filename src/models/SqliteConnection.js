@@ -85,7 +85,7 @@ export default class SqliteConnection extends BaseDBConnection {
                 });
             });
         }).then(function(args) {
-            return me.$$querySet(model, query, args[0], args[1]);
+            return me.$$queryset(model, query, args[0], args[1]);
         });
     }
     run(query, model) {

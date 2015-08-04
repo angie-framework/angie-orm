@@ -215,7 +215,7 @@ class BaseDBConnection {
             );
         });
     }
-    $$querySet(model = {}, query, rows = [], errors) {
+    $$queryset(model = {}, query, rows = [], errors) {
         const queryset = new AngieDBObject(this, model, query);
         let me = this,
             results = [],
@@ -234,8 +234,12 @@ class BaseDBConnection {
 
         if (rows instanceof Array) {
             rows.forEach(function(v) {
-                let $v = util._extend([], v);
+                let $v = util._extend({}, v);
                 results.push($v);
+
+                // Add update method to row to allow the single row to be
+                // updated
+                v.update = queryset.$$update.bind(queryset, v);
 
                 for (let key of manyToManyFieldNames) {
                     const field = model[ key ],
@@ -271,6 +275,12 @@ class BaseDBConnection {
             });
         }
 
+        // Add update method to row set so that the whole queryset can be
+        // updated
+        rows.update = queryset.$$update.bind(queryset, rows);
+
+        // Remove reference methods
+        delete queryset.$$update;
         delete queryset.$$addOrRemove;
         delete queryset.$$readMethods;
 
