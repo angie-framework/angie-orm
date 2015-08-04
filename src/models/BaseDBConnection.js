@@ -234,8 +234,9 @@ class BaseDBConnection {
 
         if (rows instanceof Array) {
             rows.forEach(function(v) {
+
+                // Create a copy to be added to the raw results set
                 let $v = util._extend({}, v);
-                results.push($v);
 
                 // Add update method to row to allow the single row to be
                 // updated
@@ -272,6 +273,8 @@ class BaseDBConnection {
                         relArgs[ field.rel ] = me.$$queryInString(rows, 'id');
                     }
                 }
+
+                results.push($v);
             });
         }
 
