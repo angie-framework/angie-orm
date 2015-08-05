@@ -184,8 +184,7 @@ export default class SqliteConnection extends BaseDBConnection {
                     query =
                         `ALTER TABLE ${modelName} ADD COLUMN ${v} ` +
                         `${me.types(model[ v ])}` +
-                        `${model[ v ].constructor.name === 'ForeignKeyField' &&
-                            model[ v ].nullable ? ' NOT NULL' : ''}` +
+                        `${model[ v ].nullable ? ' NOT NULL' : ''}` +
                         `${model[ v ].unique ? ' UNIQUE' : ''}` +
                         `${$default ? ` DEFAULT '${$default}'` : ''};`
                     if (!me.dryRun) {

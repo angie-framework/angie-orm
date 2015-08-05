@@ -225,6 +225,8 @@ class BaseDBConnection {
             relArgs = {},
             proms = [];
 
+        console.log('MODEL', model);
+
         for (let key in model) {
             let field = model[ key ];
             if (field.type && field.type === 'ManyToManyField') {
@@ -267,10 +269,14 @@ class BaseDBConnection {
                 // Find all of the foreign key fields
                 for (let key in v) {
                     const field = model[ key ];
-                    if (field && field.nesting === true) {
+                    if (field && (
+                            field.nesting === true ||
+                            field.deepNesting === true
+                        )
+                    ) {
                         rels.push(field.rel);
                         relFieldNames[ field.rel ] = key;
-                        relArgs[ field.rel ] = me.$$queryInString(rows, 'id');
+                        relArgs[ field.rel ] = rows.map((v) => v.id);
                     }
                 }
 
@@ -289,11 +295,9 @@ class BaseDBConnection {
 
         // Instantiate a promise for each of the foreign key fields in the query
         rels.forEach(function(v) {
-            proms.push(me.filter({
-                model: {
-                    name: v,
-                    id: relArgs[ v ]
-                }
+            proms.push(global.app.Models[ v ].filter({
+                database: model.$$database.name,
+                id: relArgs[ v ]
             }).then(function(queryset) {
 
                 // Add errors to queryset errors
@@ -304,16 +308,21 @@ class BaseDBConnection {
                 // Add any errors to the queryset
                 errors.push(queryset.errors);
 
-                rows.forEach(function(row) {
-                    queryset.forEach(function(queryRow) {
+                rows.forEach(function(row, i) {
+                    queryset.forEach(function(queryrow) {
                         if (
                             !isNaN(+row[ relFieldNames[ v ] ]) &&
-                            queryRow.hasOwnProperty('id') &&
-                            row[ relFieldNames[ v ] ] === queryRow.id
+                            queryrow.hasOwnProperty('id') &&
+                            row[ relFieldNames[ v ] ] === queryrow.id
                         ) {
-                            row[ relFieldNames[ v ] ] = queryRow;
+
+                            // Assign the nested row
+                            results[ i ][ relFieldNames[ v ] ] =
+                                queryset.results[ i ];
+                            row[ relFieldNames[ v ] ] = queryrow;
                         } else {
-                            row[ relFieldNames[ v ] ] = null;
+                            results[ i ][ relFieldNames[ v ] ] =
+                                row[ relFieldNames[ v ] ] = null;
                         }
                     });
                 });

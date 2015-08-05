@@ -135,6 +135,7 @@ class KeyField extends IntegerField {
         this.unique = false;
         this.minValue = 1;
         this.maxLength = 11;
+        this.nullable = true;
     }
 }
 
@@ -163,6 +164,7 @@ class ForeignKeyField extends KeyField {
         }
         this.rel = rel;
         this.type = 'ForeignKeyField';
+        this.nullable = true;
     }
 }
 
@@ -171,6 +173,7 @@ class ManyToManyField extends ForeignKeyField {
         super(rel, args);
 
         this.type = 'ManyToManyField';
+        this.unique = false;
 
         this.name = args.alias || args.name;
         if (!this.name) {

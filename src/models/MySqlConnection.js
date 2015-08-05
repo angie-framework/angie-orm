@@ -44,22 +44,27 @@ export default class MySqlConnection extends BaseDBConnection {
             this.connected = false;
         }
     }
-    types(field) {
-        let type = field.type;
+    types(model, key) {
+        const field = model[ key ];
+        let type = field.type,
+            maxLength = '';
         if (!type) {
             return;
         }
+        if (field.maxLength) {
+            maxLength = `(${field.maxLength})`;
+        }
         switch (type) {
             case 'CharField':
-                return 'VARCHAR';
+                return `VARCHAR${maxLength}`;
 
             // TODO support different size integers: TINY, SMALL, MEDIUM
             case 'IntegerField':
-                return 'INTEGER';
+                return `INTEGER${maxLength}`;
             case 'KeyField':
-                return 'INTEGER';
+                return `INTEGER${maxLength}`;
             case 'ForeignKeyField':
-                return `INTEGER, ADD CONSTRAINT FOREIGN KEY(${field.fieldname}) ` +
+                return `INTEGER${maxLength}, ADD CONSTRAINT fk_${key} FOREIGN KEY(${key}) ` +
                     `REFERENCES ${field.rel}(id) ON DELETE CASCADE`;
             default:
                 return undefined;
@@ -186,13 +191,28 @@ export default class MySqlConnection extends BaseDBConnection {
                                 v.Field !== 'id' &&
                                 me.destructive
                             ) {
-                                let query =
-                                    `ALTER TABLE \`${modelName}\` DROP COLUMN \`${v.Field}\`;`;
+                                let baseQuery = `ALTER TABLE \`${modelName}\` `,
+                                    query =
+                                        `${baseQuery}DROP COLUMN \`${v.Field}\`;`,
+                                    keyQuery;
+                                if (v.Key) {
+                                    keyQuery =
+                                        `${baseQuery}DROP FOREIGN KEY ` +
+                                        `\`fk_${v.Field}\`;`;
+                                }
                                 if (!me.dryRun) {
-                                    proms.push(me.run(query));
+                                    let prom;
+                                    if (keyQuery) {
+                                        prom = me.run(keyQuery).then(
+                                            () => me.run(query)
+                                        );
+                                    } else {
+                                        prom = me.run(query);
+                                    }
+                                    proms.push(prom);
                                 } else {
                                     $LogProvider.mysqlInfo(
-                                        `Dry Run Query: ${gray(query)}`
+                                        `Dry Run Query: ${gray(`${keyQuery} ${query}`)}`
                                     );
                                 }
                             }
@@ -214,14 +234,8 @@ export default class MySqlConnection extends BaseDBConnection {
                                 }
                                 query =
                                     `ALTER TABLE \`${modelName}\` ADD COLUMN \`${v}\` ` +
-                                    `${me.types(model[ v ])}(` +
-                                    (
-                                        model[ v ].maxLength ?
-                                        `${model[ v ].maxLength}` : '255'
-                                    ) +
-                                    `)${model[ v ].constructor.name ===
-                                        'ForeignKeyField' && model[ v ].nullable ? '' :
-                                        ' NOT NULL'}` +
+                                    `${me.types(model, v)}` +
+                                    `${model[ v ].nullable ? '' : ' NOT NULL'}` +
                                     `${model[ v ].unique ? ' UNIQUE' : ''}` +
                                     `${$default ? ` DEFAULT '${$default}'` : ''};`
                                 if (!me.dryRun) {
