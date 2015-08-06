@@ -25,7 +25,6 @@ class SqliteConnection extends BaseDBConnection {
 
         let db = this.database;
         if (!db.name) {
-            console.log('HERE IS WHERE THE ERROR IS THROWN');
             throw new $$InvalidDatabaseConfigError();
         }
         this.name = this.database.name || this.database.alias;
@@ -52,7 +51,6 @@ class SqliteConnection extends BaseDBConnection {
     }
     connect() {
         let db = this.database;
-        console.log('db', this.database, this.connection);
         if (!this.connection) {
             try {
                 this.connection = new sqlite3.Database(this.name);
@@ -63,9 +61,6 @@ class SqliteConnection extends BaseDBConnection {
         }
         return this.connection;
     }
-    serialize(fn) {
-        return this.connect().serialize(fn);
-    }
     disconnect() {
         this.connect().close();
         return this;
@@ -75,12 +70,9 @@ class SqliteConnection extends BaseDBConnection {
             db = this.database,
             name = this.name;
         return new Promise(function(resolve) {
-            return me.serialize(resolve);
-        }).then(function() {
-            return new Promise(function(resolve) {
-                $LogProvider.sqliteInfo(`Query: ${cyan(name)}: ${magenta(query)}`);
-                console.log('CONNECTION', me.connection);
-                return me.connection[ key ](query, function(e, rows = []) {
+            $LogProvider.sqliteInfo(`Query: ${cyan(name)}: ${magenta(query)}`);
+            me.connect().parallelize(function() {
+                me.connection[ key ](query, function(e, rows = []) {
                     if (e) {
                         $LogProvider.warn(e);
                     }

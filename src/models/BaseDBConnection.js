@@ -294,8 +294,6 @@ class BaseDBConnection {
         // Instantiate a promise for each of the foreign key fields in the query
         rels.forEach(function(v) {
 
-            console.log('IM TRYING TO NEST, BUT WTF IS THAT DB', model);
-
             // Reference the relative object
             proms.push(global.app.Models[ v ].filter({
                 database: model.$$database.name,
