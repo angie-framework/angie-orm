@@ -42,6 +42,9 @@ function AngieDatabaseRouter(args) {
     }
     config = global.app.$$config;
 
+
+
+
     if (args instanceof Array) {
         for (let arg of args) {
             if (Object.keys(config.databases).indexOf(arg) > -1) {
@@ -59,7 +62,10 @@ function AngieDatabaseRouter(args) {
         return database;
     }
 
-    let db = config.databases ? config.databases[ name ] : undefined,
+    // Try to fetch database by name or try to grab default
+    let db = config.databases && config.databases[ name ] ?
+            config.databases[ name ] : config.databases.default ?
+                config.databases.default : null,
         destructive = p.argv.some((v) => /--destructive/i.test(v)),
         dryRun = p.argv.some((v) => /--dry([-_])?run/i.test(v));
 
@@ -76,10 +82,7 @@ function AngieDatabaseRouter(args) {
         }
     }
 
-    console.log('DATABASE', database);
-
     if (!database) {
-        console.log('HERE IS REALLY WHERE THE ERROR IS THROWN');
         throw new $$InvalidDatabaseConfigError();
     }
 
