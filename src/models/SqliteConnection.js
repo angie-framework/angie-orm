@@ -19,12 +19,13 @@ sqlite3.verbose();
 const p = process;
 $LogProvider.sqliteInfo = $LogProvider.info.bind(null, 'Sqlite');
 
-export default class SqliteConnection extends BaseDBConnection {
+class SqliteConnection extends BaseDBConnection {
     constructor(database, destructive, dryRun) {
         super(database, destructive, dryRun);
 
         let db = this.database;
         if (!db.name) {
+            console.log('HERE IS WHERE THE ERROR IS THROWN');
             throw new $$InvalidDatabaseConfigError();
         }
         this.name = this.database.name || this.database.alias;
@@ -36,13 +37,13 @@ export default class SqliteConnection extends BaseDBConnection {
         }
         switch (type) {
             case 'CharField':
-                return 'TEXT';
+                return `TEXT${field.nullable ? ' NOT NULL' : ''}`;
 
             // TODO support different size integers: TINY, SMALL, MEDIUM
             case 'IntegerField':
-                return 'INTEGER';
+                return `INTEGER${field.nullable ? ' NOT NULL' : ''}`;
             case 'KeyField':
-                return 'INTEGER';
+                return `INTEGER${field.nullable ? ' NOT NULL' : ''}`;
             case 'ForeignKeyField':
                 return `INTEGER REFERENCES ${field.rel}(id)`;
             default:
@@ -51,6 +52,7 @@ export default class SqliteConnection extends BaseDBConnection {
     }
     connect() {
         let db = this.database;
+        console.log('db', this.database, this.connection);
         if (!this.connection) {
             try {
                 this.connection = new sqlite3.Database(this.name);
@@ -77,6 +79,7 @@ export default class SqliteConnection extends BaseDBConnection {
         }).then(function() {
             return new Promise(function(resolve) {
                 $LogProvider.sqliteInfo(`Query: ${cyan(name)}: ${magenta(query)}`);
+                console.log('CONNECTION', me.connection);
                 return me.connection[ key ](query, function(e, rows = []) {
                     if (e) {
                         $LogProvider.warn(e);
@@ -184,7 +187,6 @@ export default class SqliteConnection extends BaseDBConnection {
                     query =
                         `ALTER TABLE ${modelName} ADD COLUMN ${v} ` +
                         `${me.types(model[ v ])}` +
-                        `${model[ v ].nullable ? ' NOT NULL' : ''}` +
                         `${model[ v ].unique ? ' UNIQUE' : ''}` +
                         `${$default ? ` DEFAULT '${$default}'` : ''};`
                     if (!me.dryRun) {
@@ -204,3 +206,5 @@ export default class SqliteConnection extends BaseDBConnection {
         });
     }
 }
+
+export default SqliteConnection;

@@ -18,7 +18,7 @@ const p = process,
       DEFAULT_PORT = 3306;
 $LogProvider.mysqlInfo = $LogProvider.info.bind(null, 'MySQL');
 
-export default class MySqlConnection extends BaseDBConnection {
+class MySqlConnection extends BaseDBConnection {
     constructor(name, database, destructive, dryRun) {
         super(database, destructive, dryRun);
         let db = this.database;
@@ -262,3 +262,5 @@ export default class MySqlConnection extends BaseDBConnection {
         });
     }
 }
+
+export default MySqlConnection;

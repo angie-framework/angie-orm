@@ -65,7 +65,10 @@ class BaseModel {
             me = this;
 
         this.$fields().forEach(function(field) {
-            const val = args[ field ] || null;
+            let val = args[ field ] || args.model[ field ].default || null;
+            if (typeof val === 'function') {
+                val = val.call(this, args);
+            }
             if (
                 me[ field ] &&
                 me[ field ].validate &&

@@ -76,7 +76,10 @@ function AngieDatabaseRouter(args) {
         }
     }
 
+    console.log('DATABASE', database);
+
     if (!database) {
+        console.log('HERE IS REALLY WHERE THE ERROR IS THROWN');
         throw new $$InvalidDatabaseConfigError();
     }
 
