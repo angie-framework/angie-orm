@@ -38,7 +38,7 @@
     "Database"
   ],
   "devDependencies": {
-    "babel-eslint": "3.1.17",
+    "babel-eslint": "^3.1.17",
     "chai": "2.3.0",
     "esdoc": "0.1.2",
     "gulp": "3.9.0",
