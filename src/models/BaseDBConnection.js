@@ -101,10 +101,9 @@ class BaseDBConnection {
                 // If we're dealing with a number...
                 if (typeof v === 'number') {
                     return `${k}=${v}`;
-                }
+                } else if (v.indexOf('~') > -1) {
 
-                // If there is a like operator, add a like phrase
-                else if (v.indexOf('~') > -1) {
+                    // If there is a like operator, add a like phrase
                     return `${k} like '%${v.replace(/~/g, '')}%'`;
                 } else if (
                     /(<=?|>=?)[^<>=]+/.test(v) &&

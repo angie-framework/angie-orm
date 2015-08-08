@@ -104,10 +104,10 @@ app.Models = {};
  * @param {string} name The name of the constant being created
  * @param {function|object} obj The Model value, returns Models params.
  */
-app.Model = function Model(name, obj = {}) {
-    let model = typeof obj === 'function' ?
-        new obj($$FieldProvider) :
-            typeof obj === 'object' ? obj : undefined;
+app.Model = function Model(name, Obj = {}) {
+    let model = typeof Obj === 'function' ?
+        new Obj($$FieldProvider) :
+            typeof Obj === 'object' ? Obj : undefined;
 
     model.name = model.name || name;
     let instance = new BaseModel(model.name);

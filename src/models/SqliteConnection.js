@@ -67,7 +67,6 @@ class SqliteConnection extends BaseDBConnection {
     }
     query(query, model, key) {
         let me = this,
-            db = this.database,
             name = this.name;
         return new Promise(function(resolve) {
             $LogProvider.sqliteInfo(`Query: ${cyan(name)}: ${magenta(query)}`);
@@ -180,7 +179,7 @@ class SqliteConnection extends BaseDBConnection {
                         `ALTER TABLE ${modelName} ADD COLUMN ${v} ` +
                         `${me.types(model[ v ])}` +
                         `${model[ v ].unique ? ' UNIQUE' : ''}` +
-                        `${$default ? ` DEFAULT '${$default}'` : ''};`
+                        `${$default ? ` DEFAULT '${$default}'` : ''};`;
                     if (!me.dryRun) {
                         proms.push(me.run(query));
                     } else {
