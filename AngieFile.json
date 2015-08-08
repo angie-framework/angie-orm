@@ -1,7 +1,6 @@
 {
     "projectName": "$ModelProvider",
     "dependencies": [
-        "angie-log",
-        "angie-injector"
+        "angie-log"
     ]
 }

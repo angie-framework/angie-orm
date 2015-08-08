@@ -2,6 +2,8 @@
 
 // System Modules
 import util from                        'util';
+import {cyan} from                      'chalk';
+import $LogProvider from                'angie-log';
 
 // Angie Modules
 import AngieDatabaseRouter from         './AngieDatabaseRouter';
@@ -218,13 +220,12 @@ class AngieDBObject {
 }
 
 class $$InvalidRelationCrossReferenceError extends RangeError {
-    constructor(method, field, id, obj, error = '') {
+    constructor(method, field) {
         $LogProvider.error(
             `Cannot ${method} reference on ${cyan(field.name)}: ` +
             'No such existing record.'
         );
         super();
-        p.exit(1);
     }
 }
 

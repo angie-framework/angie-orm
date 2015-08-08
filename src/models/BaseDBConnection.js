@@ -14,7 +14,6 @@ import {
 
 // Keys we do not necessarily want to parse as query arguments
 const p = process,
-      app = global.app,
       IGNORE_KEYS = [
           'database',
           'tail',
@@ -217,8 +216,7 @@ class BaseDBConnection {
     }
     $$queryset(model = {}, query, rows = [], errors) {
         const queryset = new AngieDBObject(this, model, query);
-        let me = this,
-            results = [],
+        let results = [],
             manyToManyFieldNames = [],
             rels = [],
             relFieldNames = {},

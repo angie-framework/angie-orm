@@ -1,7 +1,6 @@
 'use strict'; 'use strong';
 
 // System Modules
-import fs from                      'fs';
 import util from                    'util';
 import {blue} from                  'chalk';
 import $LogProvider from            'angie-log';
@@ -9,6 +8,9 @@ import $LogProvider from            'angie-log';
 // Angie ORM Modules
 import BaseModel from               './models/BaseModel';
 import * as $$FieldProvider from    './models/$Fields';
+import {
+    $$InvalidModelConfigError
+} from                              './util/$ExceptionsProvider';
 
 
 // Setup the app or inherit the app from the `global` Namespace
@@ -35,6 +37,7 @@ if (global.app) {
             return this;
         },
         $$load() {
+            const fs = require('fs');
 
             // Do not call load twice
             if (this.$$loaded === true) {

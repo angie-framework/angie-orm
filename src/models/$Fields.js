@@ -1,4 +1,4 @@
-// 'use strict'; 'use strong';
+'use strict'; 'use strong';
 
 // System Modules
 import util from                'util';
@@ -6,9 +6,9 @@ import {magenta, cyan} from     'chalk';
 import $LogProvider from        'angie-log';
 
 // Angie ORM Modules
-import {
-    $$InvalidModelConfigError
-} from                          '../util/$ExceptionsProvider';
+// import {
+//     $$InvalidModelConfigError
+// } from                          '../util/$ExceptionsProvider';
 
 const p = process;
 
@@ -145,7 +145,7 @@ class ForeignKeyField extends KeyField {
 
         this.type = 'ForeignKeyField';
 
-        if (!rel || !app.Models[ rel ]) {
+        if (!rel || !global.app.Models[ rel ]) {
             throw new $$InvalidFieldConfigError(
                 this.type,
                 `Invalid relative model ${rel ? `${cyan(rel)} ` : ''}` +

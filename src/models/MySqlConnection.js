@@ -6,9 +6,11 @@ import {cyan, magenta, gray} from       'chalk';
 import $LogProvider from                'angie-log';
 
 // Angie Modules
-import BaseDBConnection, {
-    $$DatabaseConnectivityError
-} from                                  './BaseDBConnection';
+import BaseDBConnection from           './BaseDBConnection';
+
+// {
+//     $$DatabaseConnectivityError
+// } from                                  './BaseDBConnection';
 import {
     $$InvalidDatabaseConfigError
 } from                                  '../util/$ExceptionsProvider';
@@ -77,11 +79,13 @@ class MySqlConnection extends BaseDBConnection {
                 me.connection.connect(function(e) {
 
                     // TODO add this back in?
-                    // if (e) {
-                    //     throw new $$DatabaseConnectivityError(me.database);
-                    // }
-                    me.connected = true;
-                    $LogProvider.mysqlInfo('Connection successful');
+                    if (e) {
+                        // throw new $$DatabaseConnectivityError(me.database);
+                        $LogProvider.error(e);
+                    } else {
+                        me.connected = true;
+                        $LogProvider.mysqlInfo('Connection successful');
+                    }
                 });
             }
             resolve();
@@ -93,7 +97,6 @@ class MySqlConnection extends BaseDBConnection {
     }
     run(query, model) {
         let me = this,
-            db = this.database,
             name = this.name;
         return this.connect().then(function() {
             return new Promise(function(resolve) {
@@ -163,9 +166,10 @@ class MySqlConnection extends BaseDBConnection {
         return super.migrate().then(function() {
             return me.run('SHOW TABLES').then((queryset) => queryset);
         }).then(function(queryset) {
-            const modelMap = [
-                for (model of queryset) model[ `Tables_in_${me.name}` ]
-            ];
+            // const modelMap = [
+            //     for (model of queryset) model[ `Tables_in_${me.name}` ]
+            // ];
+            const modelMap = queryset.map((v) => v[ `Tables_in_${me.name}` ]);
             let models = me.models(),
                 proms = [];
             for (let key of modelMap) {
@@ -237,7 +241,7 @@ class MySqlConnection extends BaseDBConnection {
                                     `${me.types(model, v)}` +
                                     `${model[ v ].nullable ? '' : ' NOT NULL'}` +
                                     `${model[ v ].unique ? ' UNIQUE' : ''}` +
-                                    `${$default ? ` DEFAULT '${$default}'` : ''};`
+                                    `${$default ? ` DEFAULT '${$default}'` : ''};`;
                                 if (!me.dryRun) {
                                     proms.push(me.run(query));
                                 } else {

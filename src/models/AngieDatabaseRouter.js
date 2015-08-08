@@ -74,6 +74,9 @@ function AngieDatabaseRouter(args) {
             case 'mysql':
                 database = new MySqlConnection(name, db, destructive, dryRun);
                 break;
+            case 'mongodb':
+                database = new MongoDBConnection(db, destructive, dryRun);
+                break;
             case 'firebase':
                 database = new FirebaseConnection(db, destructive, dryRun);
                 break;
@@ -87,7 +90,8 @@ function AngieDatabaseRouter(args) {
     }
 
     // Setup a cache of database connections in memory already
-    return (dbs[ name ] = database);
+    dbs[ name ] = database;
+    return database;
 }
 
 export default AngieDatabaseRouter;
