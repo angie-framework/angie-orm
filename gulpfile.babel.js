@@ -39,8 +39,7 @@ gulp.task('jscs', [ 'eslint' ], function () {
 });
 gulp.task('mocha', function(cb) {
     let proc;
-
-    return new Promise(function(resolve, reject) {
+    new Promise(function(resolve, reject) {
         proc = gulp.src(src).pipe(
             istanbul({
                 instrumenter: Instrumenter,
