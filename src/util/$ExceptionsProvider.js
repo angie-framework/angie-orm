@@ -1,18 +1,18 @@
 'use strict'; 'use strong';
 
 // System Modules
-import {red, bold, magenta} from 'chalk';
+import {magenta, cyan} from         'chalk';
+import $LogProvider from            'angie-log';
 
-const bread = () => red(bold.apply(null, arguments));
+const p = process;
 
-class $$InvalidConfigError extends Error {
-    constructor(name) {
-        super(
-            bread(
-                `Invalid ${name} configuration settings. ` +
-                'Please check your AngieFile.'
-            )
+class $$InvalidConfigError extends ReferenceError {
+    constructor(name = '') {
+        $LogProvider.error(
+            `Invalid${name ? ` ${name}` : ''} configuration settings. ` +
+            'Please check your AngieFile.'
         );
+        super();
     }
 }
 
@@ -22,24 +22,33 @@ class $$InvalidDatabaseConfigError extends $$InvalidConfigError {
     }
 }
 
-class $$InvalidModelConfigError extends Error {
-    constructor(name) {
-        super(bread(
+class $$InvalidModelConfigError extends TypeError {
+    constructor(name, error = '') {
+        $LogProvider.error(
             'Invalid Model configuration for model ' +
-            `${magenta(name)} <-- ${magenta(name)}${magenta('Provider')}`
-        ));
+            `${magenta(name)} <-- ${magenta(name)}${magenta('Provider')}` +
+            `${error ? ` ${error}` : ''}`
+        );
+        super();
+        p.exit(1);
     }
 }
 
 class $$InvalidModelReferenceError extends Error {
     constructor() {
-        super(bread('Invalid Model argument'));
+        $LogProvider.error('Invalid Model argument');
+        super();
+        p.exit(1);
     }
 }
 
 class $$InvalidModelFieldReferenceError extends Error {
     constructor(name = '', field) {
-        super(bread(`Invalid param for Model ${name}@${field}`));
+        $LogProvider.error(
+            `Invalid param for Model ${cyan(name)}.${cyan(field)}`
+        );
+        super();
+        p.exit(1);
     }
 }
 

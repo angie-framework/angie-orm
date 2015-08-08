@@ -2,7 +2,8 @@
 
 // System Modules
 import fs from                          'fs';
-import {verbose} from                   'sqlite3';
+import sqlite3 from                     'sqlite3';
+import {cyan, magenta, gray} from       'chalk';
 import $LogProvider from                'angie-log';
 
 // Angie Modules
@@ -13,16 +14,20 @@ import {
     $$InvalidDatabaseConfigError
 } from                                  '../util/$ExceptionsProvider';
 
-const sqlite3 = verbose();
+sqlite3.verbose();
 
-export default class SqliteConnection extends BaseDBConnection {
-    constructor(database, destructive) {
-        super(database, destructive);
+const p = process;
+$LogProvider.sqliteInfo = $LogProvider.info.bind(null, 'Sqlite');
+
+class SqliteConnection extends BaseDBConnection {
+    constructor(database, destructive, dryRun) {
+        super(database, destructive, dryRun);
 
         let db = this.database;
         if (!db.name) {
             throw new $$InvalidDatabaseConfigError();
         }
+        this.name = this.database.name || this.database.alias;
     }
     types(field) {
         let type = field.type;
@@ -31,11 +36,13 @@ export default class SqliteConnection extends BaseDBConnection {
         }
         switch (type) {
             case 'CharField':
-                return 'TEXT';
+                return `TEXT${field.nullable ? ' NOT NULL' : ''}`;
 
             // TODO support different size integers: TINY, SMALL, MEDIUM
             case 'IntegerField':
-                return 'INTEGER';
+                return `INTEGER${field.nullable ? ' NOT NULL' : ''}`;
+            case 'KeyField':
+                return `INTEGER${field.nullable ? ' NOT NULL' : ''}`;
             case 'ForeignKeyField':
                 return `INTEGER REFERENCES ${field.rel}(id)`;
             default:
@@ -46,16 +53,13 @@ export default class SqliteConnection extends BaseDBConnection {
         let db = this.database;
         if (!this.connection) {
             try {
-                this.connection = new sqlite3.Database(db.name);
-                $LogProvider.info('Connection successful');
+                this.connection = new sqlite3.Database(this.name);
+                $LogProvider.sqliteInfo('Connection successful');
             } catch(err) {
                 throw new $$DatabaseConnectivityError(db);
             }
         }
         return this.connection;
-    }
-    serialize(fn) {
-        return this.connect().serialize(fn);
     }
     disconnect() {
         this.connect().close();
@@ -63,13 +67,10 @@ export default class SqliteConnection extends BaseDBConnection {
     }
     query(query, model, key) {
         let me = this,
-            db = this.database,
-            name = db.name || db.alias;
+            name = this.name;
         return new Promise(function(resolve) {
-            $LogProvider.info(`Sqlite3 Query: ${name}: ${query}`);
-            return me.serialize(resolve);
-        }).then(function() {
-            return new Promise(function(resolve) {
+            $LogProvider.sqliteInfo(`Query: ${cyan(name)}: ${magenta(query)}`);
+            me.connect().parallelize(function() {
                 me.connection[ key ](query, function(e, rows = []) {
                     if (e) {
                         $LogProvider.warn(e);
@@ -78,7 +79,7 @@ export default class SqliteConnection extends BaseDBConnection {
                 });
             });
         }).then(function(args) {
-            return me._querySet(model, query, args[0], args[1]);
+            return me.$$queryset(model, query, args[0], args[1]);
         });
     }
     run(query, model) {
@@ -106,14 +107,13 @@ export default class SqliteConnection extends BaseDBConnection {
     sync() {
         let me = this;
         super.sync().then(function() {
-            let db = me.database,
-                proms = [];
+            let proms = [];
 
             // TODO test this in another directory
-            if (!fs.existsSync(db.name)) {
+            if (!fs.existsSync(me.name)) {
 
                 // Connection does not exist and we must touch the db file
-                fs.closeSync(fs.openSync(db.name, 'w'));
+                fs.closeSync(fs.openSync(me.name, 'w'));
             }
 
             let models = me.models();
@@ -122,49 +122,80 @@ export default class SqliteConnection extends BaseDBConnection {
                 // Fetch models and get model name
                 let instance = models[ model ],
                     modelName = instance.name || instance.alias ||
-                        me.name(instance);
+                        me.$$name(instance);
 
                 // Run a table creation with an ID for each table
                 proms.push(me.run(
                     `CREATE TABLE ${modelName} ` +
-                        '(id INTEGER PRIMARY KEY AUTOINCREMENT);',
+                    '(id INTEGER PRIMARY KEY AUTOINCREMENT);',
                     modelName
                 ));
             }
             return Promise.all(proms).then(function() {
                 return me.migrate();
-            }).then(function() {
-                return me.disconnect();
             });
         });
     }
     migrate() {
         let me = this;
-
-        super.migrate().then(function() {
+        return super.migrate().then(function() {
             let models = me.models(),
-                proms = [];
+                proms = [],
+                logged = true;
 
-            for (let model in models) {
-                let instance = models[ model ],
-                    modelName = instance.name || instance.alias ||
-                        me.name(instance);
-                instance._fields().forEach(function(field) {
-                    let nullable = instance[ field ].nullable ? ' NOT NULL' : '',
-                        unique = instance[ field ].unique ? ' UNIQUE' : '';
-                    instance[ field ].fieldname = field;
-                    proms.push(me.run(
-                        `ALTER TABLE ${modelName} ADD COLUMN ${field} ` +
-                            `${me.types(instance[ field ])}` +
-                            `${instance[ field].type ===
-                                'ForeignKeyField' ? nullable : ''}${unique};`
-                    ));
-                });
-                if (me.destructive) {
-                    console.log('destructive');
+            for (let key in models) {
+                const model = models[ key ],
+                      modelName = me.$$name(model.name || model.alias),
+                      fields = model.$fields();
+                if (me.destructive && logged) {
+
+                    // TODO recommmend that the user copy the table over
+                    // without the column, delete the original, and
+                    // rename the table
+                    $LogProvider.error(
+                        'You have specified a destructive Migration and ' +
+                        `have fields in the ${cyan(modelName)} model ` +
+                        'which do not exist in your app.Model code. ' +
+                        'However, sqlite3 destructive migrations are not ' +
+                        'supported. Please see the docs for more info.'
+                    );
+                    logged = false;
                 }
+
+                fields.forEach(function(v) {
+                    if (model[ v ].type === 'ManyToManyField') {
+                        return;
+                    }
+
+                    let query,
+                        $default;
+                    if (model[ v ].default) {
+                        $default = model[ v ].default;
+                        if (typeof $default === 'function') {
+                            $default = $default();
+                        }
+                    }
+                    query =
+                        `ALTER TABLE ${modelName} ADD COLUMN ${v} ` +
+                        `${me.types(model[ v ])}` +
+                        `${model[ v ].unique ? ' UNIQUE' : ''}` +
+                        `${$default ? ` DEFAULT '${$default}'` : ''};`;
+                    if (!me.dryRun) {
+                        proms.push(me.run(query));
+                    } else {
+                        $LogProvider.sqliteInfo(`Dry Run Query: ${gray(query)}`);
+                    }
+                });
             }
             return Promise.all(proms);
+        }).then(function() {
+            me.disconnect();
+            $LogProvider.sqliteInfo(
+                `Successfully Synced & Migrated ${cyan(me.name)}`
+            );
+            p.exit(0);
         });
     }
 }
+
+export default SqliteConnection;

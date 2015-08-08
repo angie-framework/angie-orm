@@ -6,11 +6,14 @@ import fs from                          'fs';
 // Angie ORM Modules
 import SqliteConnection from            './SqliteConnection';
 import MySqlConnection from             './MySqlConnection';
+import FirebaseConnection from          './FirebaseConnection';
+import MongoDBConnection from           './MongoDBConnection';
 import {
     $$InvalidConfigError,
     $$InvalidDatabaseConfigError
 } from                                  '../util/$ExceptionsProvider';
 
+const p = process;
 let app,
     dbs = {},
     config;
@@ -21,31 +24,34 @@ function AngieDatabaseRouter(args) {
     let database,
         name = 'default';
 
-    if (!config && !app.$$config) {
+    if (!config && !global.app.$$config) {
         try {
             const $$config = JSON.parse(
                 fs.readFileSync(`${process.cwd()}/AngieORMFile.json`)
             );
 
             if (typeof $$config === 'object') {
-                app.$$config = $$config;
+                global.app.$$config = $$config;
                 Object.freeze(app.$$config);
             } else {
                 throw new Error();
             }
         } catch(e) {
-            console.log(e);
             throw new $$InvalidConfigError();
         }
-        config = app.$$config;
     }
+    config = global.app.$$config;
 
-    if (typeof args === 'object' && args.length) {
-        args.forEach(function(arg) {
-            if (Object.keys(config.databases || {}).indexOf(args[1]) > -1) {
+
+
+
+    if (args instanceof Array) {
+        for (let arg of args) {
+            if (Object.keys(config.databases).indexOf(arg) > -1) {
                 name = arg;
+                break;
             }
-        });
+        }
     } else if (typeof args === 'string') {
         name = args;
     }
@@ -53,40 +59,39 @@ function AngieDatabaseRouter(args) {
     // Check to see if the database is in memory
     database = dbs[ name ];
     if (database) {
-        console.log(database);
         return database;
     }
 
-    let db = config.databases ? config.databases[ name ] : undefined,
-        destructive = process.argv.indexOf('--destructive') > -1;
+    // Try to fetch database by name or try to grab default
+    let db = config.databases && config.databases[ name ] ?
+            config.databases[ name ] : config.databases.default ?
+                config.databases.default : null,
+        destructive = p.argv.some((v) => /--destructive/i.test(v)),
+        dryRun = p.argv.some((v) => /--dry([-_])?run/i.test(v));
 
     if (db && db.type) {
-        let type = db.type;
-
-        // TODO call these with the actual DB, we should not have to check
-        // the config once it's in a bucket
-
-        switch (type.toLowerCase()) {
+        switch (db.type.toLowerCase()) {
             case 'mysql':
-                database = new MySqlConnection(name, db, destructive);
+                database = new MySqlConnection(name, db, destructive, dryRun);
                 break;
-
-            // TODO add for Firebase controls
-            // case 'firebase':
-            //     database = new FirebaseConnection(db, destructive);
-            //     break;
+            case 'mongodb':
+                database = new MongoDBConnection(db, destructive, dryRun);
+                break;
+            case 'firebase':
+                database = new FirebaseConnection(db, destructive, dryRun);
+                break;
             default:
-                database = new SqliteConnection(db, destructive);
+                database = new SqliteConnection(db, destructive, dryRun);
         }
     }
+
     if (!database) {
         throw new $$InvalidDatabaseConfigError();
     }
 
-    console.log(database);
-
     // Setup a cache of database connections in memory already
-    return (dbs[ name ] = database);
+    dbs[ name ] = database;
+    return database;
 }
 
 export default AngieDatabaseRouter;

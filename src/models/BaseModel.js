@@ -2,6 +2,8 @@
 
 // System Modules
 import util from                        'util';
+import {cyan} from                      'chalk';
+import $LogProvider from                'angie-log';
 
 // Angie Modules
 import AngieDatabaseRouter from         './AngieDatabaseRouter';
@@ -11,80 +13,92 @@ import {
 
 const IGNORE_KEYS = [
     'database',
-    '__database__',
+    '$$database',
     'model',
     'name',
     'fields',
-    'save',
-    'rows'
+    'rows',
+    'update',
+    'first',
+    'last'
 ];
 
-export class BaseModel {
+class BaseModel {
     constructor(name) {
         this.name = this.name || name;
     }
-    all() {
+    all(args = {}) {
+        args.model = this;
 
         // Returns all of the rows
-        return this._prep.apply(this, arguments).all(this.name);
+        return this.$$prep.apply(this, arguments).all(args);
     }
-    fetch() {
-        let args = arguments[0];
+    fetch(args = {}) {
         args.model = this;
 
         // Returns a subset of rows specified with an int and a head/tail argument
-        return this._prep.apply(
+        return this.$$prep.apply(
             this,
             arguments
         ).fetch(args);
     }
-    filter() {
-        let args = arguments[0];
+    filter(args = {}) {
         args.model = this;
 
         // Returns a filtered subset of rows
-        return this._prep.apply(
+        return this.$$prep.apply(
             this,
             arguments
         ).filter(args);
     }
-    exists() {
-        return this.filter.apply(this, arguments).then(function(querySet) {
-            return !!querySet.length;
+    exists(args = {}) {
+        args.model = args.model || this;
+        return this.filter.apply(this, arguments).then(function(queryset) {
+            return !!queryset[0];
         });
     }
-    create() {
-        let args = arguments[0];
+    create(args = {}) {
         args.model = this;
 
-        this.database = this._prep.apply(this, arguments);
+        this.database = this.$$prep.apply(this, arguments);
 
         // Make sure all of our fields are resolved
         let createObj = {},
             me = this;
 
-        this._fields().forEach(function(field) {
-            const val = args[ field ] || null;
+        this.$fields().forEach(function(field) {
+            let val = args[ field ] || args.model[ field ].default || null;
+            if (typeof val === 'function') {
+                val = val.call(this, args);
+            }
             if (
                 me[ field ] &&
                 me[ field ].validate &&
                 me[ field ].validate(val)
             ) {
-                createObj[field] = val;
+                createObj[ field ] = val;
             } else {
-                throw new $$InvalidModelFieldReference(me.name, field);
+                throw new $$InvalidModelFieldReferenceError(me.name, field);
             }
         });
 
         // Once that is settled, we can call our create
         return this.database.create(args);
     }
-    delete() {
-        let args = arguments[0];
+    $createUnlessExists(args = {}) {
+        args.model = this;
+
+        // Check to see if a matching record exists and if not create it
+        let me = this;
+        return this.exists(args).then((v) =>
+            me[ v ? 'fetch' : 'create' ](args)
+        );
+    }
+    delete(args = {}) {
         args.model = this;
 
         // Delete a record/set of records
-        return this._prep.apply(
+        return this.$$prep.apply(
             this,
             arguments
         ).delete(args);
@@ -95,21 +109,9 @@ export class BaseModel {
                 arguments[1](new Error('Invalid Query String'));
             });
         }
-        return this._prep.apply(this, args).raw(query, this);
+        return this.$$prep.apply(this, args).raw(query, this);
     }
-    _prep() {
-        const args = arguments[0],
-              database = typeof args === 'object' && args.hasOwnProperty('database') ?
-                args.database : null;
-
-        // This forces the router to use a specific database, DB can also be
-        // forced at a model level by using this.database
-        this.__database__ = AngieDatabaseRouter(
-            database || this.database || 'default'
-        );
-        return this.__database__;
-    }
-    _fields() {
+    $fields() {
         this.fields = [];
         for (let key in this) {
             if (
@@ -121,46 +123,111 @@ export class BaseModel {
         }
         return this.fields;
     }
+    $$prep(args = {}) {
+        const database = typeof args === 'object' && args.hasOwnProperty('database') ?
+                  args.database : null;
+
+        // This forces the router to use a specific database, DB can also be
+        // forced at a model level by using this.database
+        this.$$database = AngieDatabaseRouter(
+            database || this.database || 'default'
+        );
+        return this.$$database;
+    }
 }
 
-// "DO YOU WANT TO CHAIN!? BECAUSE THIS IS HOW YOU CHAIN!"
-// TODO this can be made much better once Promise is subclassable
-let AngieDBObject = function(database, model, query = '') {
-    if (!database || !model) {
-        return;
-    }
-    this.database = database;
-    this.model = model;
-    this.query = query;
-};
-
-AngieDBObject.prototype.update = function() {
-    let args = arguments[0];
-
-    args.model = this.model;
-    args.rows = this;
-    if (typeof args !== 'object') {
-        return;
-    }
-
-    let updateObj = {};
-    for (let key in args) {
-        const val = args[ key ] || null;
-        if (IGNORE_KEYS.indexOf(key) > -1) {
-            continue;
-        } else if (
-            this[ key ] &&
-            this[ key ].validate &&
-            this[ key ].validate(val)
-        ) {
-            updateObj[ key ] = val;
-        } else {
-            throw new $$InvalidModelFieldReferenceError(this.name, key);
+class AngieDBObject {
+    constructor(database, model, query = '') {
+        if (!database || !model) {
+            return;
         }
+        this.database = database;
+        this.model = model;
+        this.query = query;
     }
+    first() {
+        return this[0];
+    }
+    last() {
+        return this.pop();
+    }
+    $$update(rows, args = {}) {
 
-    util.inherits(args, updateObj);
-    return this.database.update(args);
-};
+        // This should only be called internally, so it's not a huge hack:
+        // rows either references the whole queryset or just a single row
+        args.rows = rows instanceof Array ? rows : [ rows ];
+        args.model = this.model;
 
+        if (typeof args !== 'object') {
+            return;
+        }
+
+        let updateObj = {};
+        for (let key in args) {
+            const val = args[ key ] || null;
+            if (IGNORE_KEYS.indexOf(key) > -1) {
+                continue;
+            } else if (
+                this.model[ key ] &&
+                this.model[ key ].validate &&
+                this.model[ key ].validate(val)
+            ) {
+                updateObj[ key ] = val;
+            } else {
+                throw new $$InvalidModelFieldReferenceError(this.model.name, key);
+            }
+        }
+
+        util._extend(args, updateObj);
+        return this.database.update(args);
+    }
+    $$addOrRemove(method, field, id, obj = {}, extra = {}) {
+        switch (method) {
+            case 'add':
+                method = '$createUnlessExists';
+                break;
+            default: // 'remove'
+                method = 'delete';
+        }
+
+        // Get database, other extra options
+        obj = util._extend(obj, extra);
+
+        // Check to see that there is an existing related object
+        return global.app.Models[ field.rel ].exists(obj).then(function(v) {
+
+            // Check to see if a reference already exists <->
+            if (v) {
+                let $obj = util._extend({
+                    [ `${field.name}_id`]: id,
+                    [ `${field.rel}_id` ]: obj.id
+                }, extra);
+                return field.crossReferenceTable[ method ]($obj);
+            }
+            throw new Error();
+        }).catch(function() {
+            throw new $$InvalidRelationCrossReferenceError(method, field, id, obj);
+        });
+    }
+    $$readMethods(method, field, id, args = {}) {
+        args = util._extend(args, {
+            [ `${field.name}_id` ]: id,
+            values: [ `${field.rel}_id` ]
+        });
+        method = [ 'filter', 'fetch' ].indexOf(method) > -1 ? method : 'filter';
+        return field.crossReferenceTable[ method ](args);
+    }
+}
+
+class $$InvalidRelationCrossReferenceError extends RangeError {
+    constructor(method, field) {
+        $LogProvider.error(
+            `Cannot ${method} reference on ${cyan(field.name)}: ` +
+            'No such existing record.'
+        );
+        super();
+    }
+}
+
+export default BaseModel;
 export {AngieDBObject};

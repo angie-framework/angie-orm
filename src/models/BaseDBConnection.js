@@ -2,6 +2,7 @@
 
 // System Modules
 import util from                        'util';
+import {cyan} from                      'chalk';
 import $LogProvider from                'angie-log';
 
 // Angie ORM Modules
@@ -12,7 +13,7 @@ import {
 } from                                  '../util/$ExceptionsProvider';
 
 // Keys we do not necessarily want to parse as query arguments
-const app = global.app,
+const p = process,
       IGNORE_KEYS = [
           'database',
           'tail',
@@ -38,16 +39,10 @@ class BaseDBConnection {
      * being made
      * @param {boolean} destructive Should destructive migrations be run?
      */
-    constructor(database, destructive = false) {
+    constructor(database, destructive = false, dryRun = false) {
         this.database = database;
         this.destructive = destructive;
-    }
-    name (modelName) {
-        modelName = modelName.replace(/([A-Z])/g, '_$1').toLowerCase();
-        if (modelName.charAt(0) === '_') {
-            modelName = modelName.slice(1, modelName.length);
-        }
-        return modelName;
+        this.dryRun = dryRun;
     }
     models() {
         return this._models;
@@ -64,8 +59,10 @@ class BaseDBConnection {
                 values.unshift('id');
             }
         }
-        return `SELECT ${values} FROM ${args.model.name} ` +
-            `${filterQuery ? `WHERE ${filterQuery}` : ''} ${fetchQuery};`;
+
+        return `SELECT ${values} FROM ${args.model.name}` +
+            `${filterQuery ? ` WHERE ${filterQuery}` : ''}` +
+            `${fetchQuery ? ` ${fetchQuery}` : ''};`;
     }
     fetch(args = {}, filterQuery = '') {
         let ord = 'ASC';
@@ -82,7 +79,7 @@ class BaseDBConnection {
         return this.all(args, fetchQuery, filterQuery);
     }
     filter(args = {}) {
-        return this.fetch(args, this._filterQuery(args));
+        return this.fetch(args, this.$$filterQuery(args));
     }
 
     /**
@@ -97,12 +94,16 @@ class BaseDBConnection {
      * @returns {string} A query string to be passed to the performed query
      * @access private
      */
-    _filterQuery(args) {
+    $$filterQuery(args) {
         let filterQuery = [],
             fn = function(k, v) {
 
-                // If there is a like operator, add a like phrase
-                if (v.indexOf('~') > -1) {
+                // If we're dealing with a number...
+                if (typeof v === 'number') {
+                    return `${k}=${v}`;
+                } else if (v.indexOf('~') > -1) {
+
+                    // If there is a like operator, add a like phrase
                     return `${k} like '%${v.replace(/~/g, '')}%'`;
                 } else if (
                     /(<=?|>=?)[^<>=]+/.test(v) &&
@@ -124,10 +125,10 @@ class BaseDBConnection {
             if (IGNORE_KEYS.indexOf(key) > -1) {
                 continue;
             }
-            if (typeof args[ key ] !== 'object') {
+            if (args[ key ] && typeof args[ key ] !== 'object') {
                 filterQuery.push(fn(key, args[ key ]));
             } else {
-                filterQuery.push(`${key} in ${this._queryInString(args[ key ])}`);
+                filterQuery.push(`${key} in ${this.$$queryInString(args[ key ])}`);
             }
         }
         return filterQuery.length ? `${filterQuery.join(' AND ')}` : '';
@@ -152,15 +153,15 @@ class BaseDBConnection {
             `VALUES (${values.join(', ')});`;
     }
     delete(args = {}) {
-        return `DELETE FROM ${args.model.name} ${this._filterQuery(args)};`;
+        return `DELETE FROM ${args.model.name} WHERE ${this.$$filterQuery(args)};`;
     }
     update(args = {}) {
         if (!args.model || !args.model.name) {
             throw new $$InvalidModelReferenceError();
         }
 
-        let filterQuery = this._filterQuery(args),
-            idSet = this._queryInString(args.rows, 'id');
+        let filterQuery = this.$$filterQuery(args),
+            idSet = this.$$queryInString(args.rows, 'id');
         if (!filterQuery) {
             $LogProvider.warn('No filter query in UPDATE statement.');
         } else {
@@ -169,7 +170,7 @@ class BaseDBConnection {
     }
 
     /**
-     * @desc _queryInString builds any "in" query statements in the query
+     * @desc $$queryInString builds any "in" query statements in the query
      * arguments
      * @since 0.2.2
      * @param {object} args Object representation of the arguments
@@ -179,7 +180,7 @@ class BaseDBConnection {
      * @returns {string} A query string to be passed to the performed query
      * @access private
      */
-    _queryInString(args = {}, key) {
+    $$queryInString(args = {}, key) {
         let fieldSet = [];
         if (key) {
             args.forEach(function(row) {
@@ -194,10 +195,10 @@ class BaseDBConnection {
         let me = this;
 
         // Every instance of sync needs a registry of the models, which implies
-        return prepApp().then(function() {
+        return global.app.$$load().then(function() {
             me._models = global.app.Models;
             $LogProvider.info(
-                `Synccing database: ${me.database.name || me.database.alias}`
+                `Synccing database: ${cyan(me.database.name || me.database.alias)}`
             );
         });
     }
@@ -205,61 +206,120 @@ class BaseDBConnection {
         let me = this;
 
         // Every instance of sync needs a registry of the models, which implies
-        return prepApp().then(function() {
+        return global.app.$$load().then(function() {
             me._models = global.app.Models;
             $LogProvider.info(
-                `Migrating database: ${me.database.name || me.database.alias}`
+                `Migrating database: ${cyan(me.database.name || me.database.alias)}`
             );
         });
     }
-    _querySet(model, query, rows, errors) {
-        let me = this,
+    $$queryset(model = {}, query, rows = [], errors) {
+        const queryset = new AngieDBObject(this, model, query);
+        let results = [],
+            manyToManyFieldNames = [],
             rels = [],
             relFieldNames = {},
             relArgs = {},
-
             proms = [];
 
-        // We want to process all of the foreign keys
-        rows.forEach(function(v) {
-
-            // Find all of the foreign key fields
-            for (let key in v) {
-                const field = model[ key ];
-                if (field && field.nesting === true) {
-                    rels.push(field.rel);
-                    relFieldNames[ field.rel ] = key;
-                    relArgs[ field.rel ] = me._queryInString(rows, 'id');
-                }
+        for (let key in model) {
+            let field = model[ key ];
+            if (field.type && field.type === 'ManyToManyField') {
+                manyToManyFieldNames.push(key);
             }
-        });
+        }
 
-        // Instantiate a promise for each of the foreign key fields in the
-        // query
-        rels.forEach(function(v) {
-            proms.push(me.filter({
-                model: {
-                    name: v,
-                    id: relArgs[ v ]
+        if (rows instanceof Array) {
+            rows.forEach(function(v) {
+
+                // Create a copy to be added to the raw results set
+                let $v = util._extend({}, v);
+
+                // Add update method to row to allow the single row to be
+                // updated
+                v.update = queryset.$$update.bind(queryset, v);
+
+                for (let key of manyToManyFieldNames) {
+                    const field = model[ key ],
+                          many = v[ key ] = {};
+                    for (let method of [ 'add', 'remove' ]) {
+                        many[ method ] =
+                            queryset.$$addOrRemove.bind(
+                                queryset,
+                                method,
+                                field,
+                                v.id
+                            );
+                    }
+                    for (let method of [ 'all', 'fetch', 'filter' ]) {
+                        many[ method ] = queryset.$$readMethods.bind(
+                            queryset,
+                            method,
+                            field,
+                            v.id
+                        );
+                    }
                 }
+
+                // Find all of the foreign key fields
+                for (let key in v) {
+                    const field = model[ key ];
+                    if (field && (
+                            field.nesting === true ||
+                            field.deepNesting === true
+                        )
+                    ) {
+                        rels.push(field.rel);
+                        relFieldNames[ field.rel ] = key;
+                        relArgs[ field.rel ] = rows.map((v) => v.id);
+                    }
+                }
+
+                results.push($v);
+            });
+        }
+
+        // Add update method to row set so that the whole queryset can be
+        // updated
+        rows.update = queryset.$$update.bind(queryset, rows);
+
+        // Remove reference methods
+        delete queryset.$$update;
+        delete queryset.$$addOrRemove;
+        delete queryset.$$readMethods;
+
+        // Instantiate a promise for each of the foreign key fields in the query
+        rels.forEach(function(v) {
+
+            // Reference the relative object
+            proms.push(global.app.Models[ v ].filter({
+                database: model.$$database.name,
+                id: relArgs[ v ]
             }).then(function(queryset) {
 
                 // Add errors to queryset errors
                 if (errors === null) {
                     errors = [];
                 }
+
+                // Add any errors to the queryset
                 errors.push(queryset.errors);
 
-                rows.forEach(function(row) {
-                    queryset.forEach(function(queryRow) {
+                rows.forEach(function(row, i) {
+                    queryset.forEach(function(queryrow) {
                         if (
                             !isNaN(+row[ relFieldNames[ v ] ]) &&
-                            queryRow.hasOwnProperty('id') &&
-                            row[ relFieldNames[ v ] ] === queryRow.id
+                            queryrow.hasOwnProperty('id') &&
+                            row[ relFieldNames[ v ] ] === queryrow.id
                         ) {
-                            row[ relFieldNames[ v ] ] = queryRow;
+
+                            // Assign the nested row
+                            results[ i ][ relFieldNames[ v ] ] =
+                                queryset.results[ i ];
+                            row[ relFieldNames[ v ] ] = queryrow;
                         } else {
-                            row[ relFieldNames[ v ] ] = null;
+                            results[ i ][ relFieldNames[ v ] ] =
+                                row[ relFieldNames[ v ] ] = null;
                         }
                     });
                 });
@@ -269,14 +329,29 @@ class BaseDBConnection {
         return Promise.all(proms).then(function() {
 
             // Resolves to a value in the connections currently
-            const queryset = new AngieDBObject(me, model, query);
-            return util.inherits(
+            return util._extend(
                 rows,
-                { errors: errors },
-                AngieDBObject.prototype,
+                {
+
+                    // The raw query results
+                    results: results,
+
+                    // Any errors
+                    errors: errors,
+
+                    first: AngieDBObject.prototype.first,
+                    last: AngieDBObject.prototype.last
+                },
                 queryset
             );
         });
+    }
+    $$name(modelName) {
+        modelName = modelName.replace(/([A-Z])/g, '_$1').toLowerCase();
+        if (modelName.charAt(0) === '_') {
+            modelName = modelName.slice(1, modelName.length);
+        }
+        return modelName;
     }
 }
 
@@ -285,13 +360,16 @@ class $$DatabaseConnectivityError extends Error {
         let message;
         switch (database.type) {
             case 'mysql':
-                message = `Could not find MySql database ${database.name || database.alias}@` +
+                message = 'Could not find MySql database ' +
+                    `${cyan(database.name || database.alias)}@` +
                     `${database.host || '127.0.0.1'}:${database.port || 3306}`;
                 break;
             default:
-                message = `Could not find ${database.name} in filesystem.`;
+                message = `Could not find ${cyan(database.name)} in filesystem.`;
         }
-        super($$err(message));
+        $LogProvider.error(message);
+        super();
+        p.exit(1);
     }
 }
 
