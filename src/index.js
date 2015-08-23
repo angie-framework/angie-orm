@@ -4,9 +4,6 @@
  * @date 8/23/2015
  */
 
-// Global Modules
-import {transform} from             'babel';
-
 // System Modules
 import {exec} from                  'child_process';
 import {gray} from                  'chalk';
@@ -16,11 +13,8 @@ import $LogProvider from            'angie-log';
 import './Angie';
 
 // Angie ORM Modules
-import AngieDatabaseRouter from     './models/AngieDatabaseRouter';
+import AngieDatabaseRouter from     './databases/AngieDatabaseRouter';
 import * as $$FieldProvider from    './models/$Fields';
-
-// Tranform BabelJS options
-transform('code', { stage: 0 });
 
 const p = process;
 let args = [];

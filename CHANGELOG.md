@@ -3,7 +3,10 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 #### [0.0.3] - 2015-08-23
-##### Removed/Added
+##### Changed/Removed/Added
+- Changed requirement structure:
+    - Removed references to `BaseConnection` where they should not have existed.
+    - Spearated the database and model dependencies into different directories.
 - Removed documentation from `.gitignore`
 - Removed unnecessary `use strict;` lines from many files.
 - Created a `dist` folder/runtime with an equivalent pre-compiled Angie Log framework.

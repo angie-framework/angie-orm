@@ -8,6 +8,7 @@ register({
 });
 
 // System Modules
+import fs from                      'fs';
 import gulp from                    'gulp';
 import {argv} from                  'yargs';
 import {exec} from                  'child_process';
@@ -20,7 +21,7 @@ import cobertura from               'istanbul-cobertura-badger';
 import babel from                   'gulp-babel';
 
 const SRC = 'src/**/*.js',
-    TRANSPILED_SRC = 'dist'
+    TRANSPILED_SRC = 'dist',
     TEST_SRC = 'test/**/*.spec.js',
     DOC_SRC = 'doc',
     COVERAGE_SRC = 'coverage';
@@ -44,6 +45,7 @@ gulp.task('jscs', [ 'eslint' ], function () {
 });
 gulp.task('mocha', function(cb) {
     let proc;
+
     new Promise(function(resolve) {
         proc = gulp.src(SRC).pipe(
             istanbul({

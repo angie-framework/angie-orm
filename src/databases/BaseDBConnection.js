@@ -10,10 +10,10 @@ import {cyan} from                      'chalk';
 import $LogProvider from                'angie-log';
 
 // Angie ORM Modules
-import {AngieDBObject} from             './BaseModel';
-
 import {
-    $$InvalidModelReferenceError
+    $$InvalidModelReferenceError,
+    $$InvalidModelFieldReferenceError,
+    $$InvalidRelationCrossReferenceError
 } from                                  '../util/$ExceptionsProvider';
 
 // Keys we do not necessarily want to parse as query arguments
@@ -356,6 +356,89 @@ class BaseDBConnection {
             modelName = modelName.slice(1, modelName.length);
         }
         return modelName;
+    }
+}
+
+class AngieDBObject {
+    constructor(database, model, query = '') {
+        if (!database || !model) {
+            return;
+        }
+        this.database = database;
+        this.model = model;
+        this.query = query;
+    }
+    first() {
+        return this[0];
+    }
+    last() {
+        return this.pop();
+    }
+    $$update(rows, args = {}) {
+
+        // This should only be called internally, so it's not a huge hack:
+        // rows either references the whole queryset or just a single row
+        args.rows = rows instanceof Array ? rows : [ rows ];
+        args.model = this.model;
+
+        if (typeof args !== 'object') {
+            return;
+        }
+
+        let updateObj = {};
+        for (let key in args) {
+            const val = args[ key ] || null;
+            if (IGNORE_KEYS.indexOf(key) > -1) {
+                continue;
+            } else if (
+                this.model[ key ] &&
+                this.model[ key ].validate &&
+                this.model[ key ].validate(val)
+            ) {
+                updateObj[ key ] = val;
+            } else {
+                throw new $$InvalidModelFieldReferenceError(this.model.name, key);
+            }
+        }
+
+        util._extend(args, updateObj);
+        return this.database.update(args);
+    }
+    $$addOrRemove(method, field, id, obj = {}, extra = {}) {
+        switch (method) {
+            case 'add':
+                method = '$createUnlessExists';
+                break;
+            default: // 'remove'
+                method = 'delete';
+        }
+
+        // Get database, other extra options
+        obj = util._extend(obj, extra);
+
+        // Check to see that there is an existing related object
+        return global.app.Models[ field.rel ].exists(obj).then(function(v) {
+
+            // Check to see if a reference already exists <->
+            if (v) {
+                let $obj = util._extend({
+                    [ `${field.name}_id`]: id,
+                    [ `${field.rel}_id` ]: obj.id
+                }, extra);
+                return field.crossReferenceTable[ method ]($obj);
+            }
+            throw new Error();
+        }).catch(function() {
+            throw new $$InvalidRelationCrossReferenceError(method, field, id, obj);
+        });
+    }
+    $$readMethods(method, field, id, args = {}) {
+        args = util._extend(args, {
+            [ `${field.name}_id` ]: id,
+            values: [ `${field.rel}_id` ]
+        });
+        method = [ 'filter', 'fetch' ].indexOf(method) > -1 ? method : 'filter';
+        return field.crossReferenceTable[ method ](args);
     }
 }
 

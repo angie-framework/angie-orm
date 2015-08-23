@@ -9,15 +9,26 @@
 // import app from '../Angular';
 
 // const Firebase =        require('firebase');
-      // FirebaseTokenGenerator = require("firebase-token-generator.js");
-      // mysql =           require('mysql'),
-      // mkdirp =          require('mkdirp'),
-      // fs =              require('fs');
+// FirebaseTokenGenerator = require("firebase-token-generator.js");
+// mysql =           require('mysql'),
+// mkdirp =          require('mkdirp'),
+// fs =              require('fs');
 
 // const p = process;
 
-class FirebaseConnection {}
-export default FirebaseConnection;
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var FirebaseConnection = function FirebaseConnection() {
+  _classCallCheck(this, FirebaseConnection);
+};
+
+exports["default"] = FirebaseConnection;
 
 // export default class FirebaseConnection extends BaseDBConnection {
 //     constructor(database = 'default') {
@@ -58,5 +69,6 @@ export default FirebaseConnection;
 // TODO security around this connection
 
 // Firebase is a little different
-    // The data is basically just kvps
-    // We need to create one big list per model
+// The data is basically just kvps
+// We need to create one big list per model
+module.exports = exports["default"];

@@ -1,28 +1,87 @@
-/**
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <base data-ice="baseUrl" href="../../../">
+  <title data-ice="title">src/databases/MySqlConnection.js | API Document</title>
+  <link type="text/css" rel="stylesheet" href="css/style.css">
+  <link type="text/css" rel="stylesheet" href="css/prettify-tomorrow.css">
+  <script src="script/prettify/prettify.js"></script>
+  
+  
+</head>
+<body class="layout-container">
+
+<header>
+  <a href="./">Home</a>
+  <a href="identifiers.html">Identifier</a>
+  <a href="source.html">Source</a>
+  
+  <a data-ice="repoURL" href="https://github.com/benderTheCrime/angie-orm.git" class="repo-url-github">Repository</a>
+  <div class="search-box">
+  <span>
+    <img src="./image/search.png">
+    <span class="search-input-edge"></span><input class="search-input"><span class="search-input-edge"></span>
+  </span>
+    <ul class="search-result"></ul>
+  </div>
+</header>
+
+<nav class="navigation" data-ice="nav"><div data-ice="classWrap">
+  <h2>Class</h2>
+  <ul>
+    
+  <li data-ice="classDoc"><span><a href="class/src/util/$ExceptionsProvider.js~$$InvalidConfigError.html">$$InvalidConfigError</a></span></li>
+<li data-ice="classDoc"><span><a href="class/src/models/$Fields.js~BaseField.html">BaseField</a></span></li>
+<li data-ice="classDoc"><span><a href="class/src/models/BaseModel.js~BaseModel.html">BaseModel</a></span></li>
+<li data-ice="classDoc"><span><a href="class/src/databases/FirebaseConnection.js~FirebaseConnection.html">FirebaseConnection</a></span></li>
+<li data-ice="classDoc"><span><a href="class/src/databases/MongoDBConnection.js~MongoDBConnection.html">MongoDBConnection</a></span></li>
+<li data-ice="classDoc"><span><a href="class/src/databases/MySqlConnection.js~MySqlConnection.html">MySqlConnection</a></span></li>
+<li data-ice="classDoc"><span><a href="class/src/databases/SqliteConnection.js~SqliteConnection.html">SqliteConnection</a></span></li>
+</ul>
+</div>
+
+
+
+<div data-ice="functionWrap">
+  <h2><a href="function/">Function</a></h2>
+  <ul>
+    
+  <li data-ice="functionDoc"><span><a href="function/index.html#static-function-AngieDatabaseRouter">AngieDatabaseRouter</a></span></li>
+<li data-ice="functionDoc"><span><a href="function/index.html#static-function-Base">Base</a></span></li>
+<li data-ice="functionDoc"><span><a href="function/index.html#static-function-runTests">runTests</a></span></li>
+</ul>
+</div>
+
+
+
+
+
+
+</nav>
+
+<div class="content" data-ice="content"><h1 data-ice="title">src/databases/MySqlConnection.js</h1>
+<pre class="source-code line-number"><code class="prettyprint linenums" data-ice="content">/**
  * @module MySqlConnection.js
- * @author Joe Groseclose <@benderTheCrime>
+ * @author Joe Groseclose &lt;@benderTheCrime&gt;
  * @date 8/23/2015
  */
 
 // System Modules
-import mysql from                       'mysql';
-import {cyan, magenta, gray} from       'chalk';
-import $LogProvider from                'angie-log';
+import mysql from                       &apos;mysql&apos;;
+import {cyan, magenta, gray} from       &apos;chalk&apos;;
+import $LogProvider from                &apos;angie-log&apos;;
 
 // Angie Modules
-import BaseDBConnection from           './BaseDBConnection';
-
-// {
-//     $$DatabaseConnectivityError
-// } from                                  './BaseDBConnection';
+import BaseDBConnection from           &apos;./BaseDBConnection&apos;;
 import {
     $$InvalidDatabaseConfigError
-} from                                  '../util/$ExceptionsProvider';
+} from                                  &apos;../util/$ExceptionsProvider&apos;;
 
 const p = process,
-      DEFAULT_HOST = '127.0.0.1',
+      DEFAULT_HOST = &apos;127.0.0.1&apos;,
       DEFAULT_PORT = 3306;
-$LogProvider.mysqlInfo = $LogProvider.info.bind(null, 'MySQL');
+$LogProvider.mysqlInfo = $LogProvider.info.bind(null, &apos;MySQL&apos;);
 
 class MySqlConnection extends BaseDBConnection {
     constructor(name, database, destructive, dryRun) {
@@ -36,13 +95,13 @@ class MySqlConnection extends BaseDBConnection {
             this.connection = mysql.createConnection({
                 host: db.host || DEFAULT_HOST,
                 port: db.port || DEFAULT_PORT,
-                user: db.username || '',
-                password: db.password || '',
+                user: db.username || &apos;&apos;,
+                password: db.password || &apos;&apos;,
                 database: this.name
             });
 
-            this.connection.on('error', function() {
-                if (db.options && db.options.hardErrors) {
+            this.connection.on(&apos;error&apos;, function() {
+                if (db.options &amp;&amp; db.options.hardErrors) {
                     throw new $$InvalidDatabaseConfigError(db);
                 }
             });
@@ -53,7 +112,7 @@ class MySqlConnection extends BaseDBConnection {
     types(model, key) {
         const field = model[ key ];
         let type = field.type,
-            maxLength = '';
+            maxLength = &apos;&apos;;
         if (!type) {
             return;
         }
@@ -61,15 +120,15 @@ class MySqlConnection extends BaseDBConnection {
             maxLength = `(${field.maxLength})`;
         }
         switch (type) {
-            case 'CharField':
+            case &apos;CharField&apos;:
                 return `VARCHAR${maxLength}`;
 
             // TODO support different size integers: TINY, SMALL, MEDIUM
-            case 'IntegerField':
+            case &apos;IntegerField&apos;:
                 return `INTEGER${maxLength}`;
-            case 'KeyField':
+            case &apos;KeyField&apos;:
                 return `INTEGER${maxLength}`;
-            case 'ForeignKeyField':
+            case &apos;ForeignKeyField&apos;:
                 return `INTEGER${maxLength}, ADD CONSTRAINT fk_${key} FOREIGN KEY(${key}) ` +
                     `REFERENCES ${field.rel}(id) ON DELETE CASCADE`;
             default:
@@ -88,7 +147,7 @@ class MySqlConnection extends BaseDBConnection {
                         $LogProvider.error(e);
                     } else {
                         me.connected = true;
-                        $LogProvider.mysqlInfo('Connection successful');
+                        $LogProvider.mysqlInfo(&apos;Connection successful&apos;);
                     }
                 });
             }
@@ -140,7 +199,7 @@ class MySqlConnection extends BaseDBConnection {
     sync() {
         let me = this;
 
-        // Don't worry about the error state, handled by connection
+        // Don&apos;t worry about the error state, handled by connection
         return super.sync().then(function() {
             let models = me.models(),
                 proms = [];
@@ -155,9 +214,9 @@ class MySqlConnection extends BaseDBConnection {
                 // Run a table creation with an ID for each table
                 proms.push(me.run(
                     `CREATE TABLE \`${modelName}\` ` +
-                    '(`id` int(11) NOT NULL AUTO_INCREMENT, ' +
-                    'PRIMARY KEY (`id`) ' +
-                    ') ENGINE=InnoDB DEFAULT CHARSET=latin1;'
+                    &apos;(`id` int(11) NOT NULL AUTO_INCREMENT, &apos; +
+                    &apos;PRIMARY KEY (`id`) &apos; +
+                    &apos;) ENGINE=InnoDB DEFAULT CHARSET=latin1;&apos;
                 ));
             }
             return Promise.all(proms).then(function() {
@@ -168,19 +227,19 @@ class MySqlConnection extends BaseDBConnection {
     migrate() {
         let me = this;
         return super.migrate().then(function() {
-            return me.run('SHOW TABLES').then((queryset) => queryset);
+            return me.run(&apos;SHOW TABLES&apos;).then((queryset) =&gt; queryset);
         }).then(function(queryset) {
             // const modelMap = [
             //     for (model of queryset) model[ `Tables_in_${me.name}` ]
             // ];
-            const modelMap = queryset.map((v) => v[ `Tables_in_${me.name}` ]);
+            const modelMap = queryset.map((v) =&gt; v[ `Tables_in_${me.name}` ]);
             let models = me.models(),
                 proms = [];
             for (let key of modelMap) {
                 let prom;
                 if (!models.hasOwnProperty(key)) {
 
-                    // Don't consolidate, we don't want to look at the fields
+                    // Don&apos;t consolidate, we don&apos;t want to look at the fields
                     if (me.destructive) {
                         prom = me.run(`DROP TABLE \`${key}\`;`);
                     }
@@ -195,8 +254,8 @@ class MySqlConnection extends BaseDBConnection {
                         let proms = [];
                         queryset.forEach(function(v) {
                             if (
-                                fields.indexOf(v.Field) === -1 &&
-                                v.Field !== 'id' &&
+                                fields.indexOf(v.Field) === -1 &amp;&amp;
+                                v.Field !== &apos;id&apos; &amp;&amp;
                                 me.destructive
                             ) {
                                 let baseQuery = `ALTER TABLE \`${modelName}\` `,
@@ -212,7 +271,7 @@ class MySqlConnection extends BaseDBConnection {
                                     let prom;
                                     if (keyQuery) {
                                         prom = me.run(keyQuery).then(
-                                            () => me.run(query)
+                                            () =&gt; me.run(query)
                                         );
                                     } else {
                                         prom = me.run(query);
@@ -226,26 +285,26 @@ class MySqlConnection extends BaseDBConnection {
                             }
                         });
 
-                        // TODO you've got to return if many to many here
+                        // TODO you&apos;ve got to return if many to many here
                         fields.forEach(function(v) {
-                            if (model[ v ].type === 'ManyToManyField') {
+                            if (model[ v ].type === &apos;ManyToManyField&apos;) {
                                 return;
                             }
-                            if (queryset.map(($v) => $v.Field).indexOf(v) === -1) {
+                            if (queryset.map(($v) =&gt; $v.Field).indexOf(v) === -1) {
                                 let query,
                                     $default;
                                 if (model[ v ].default) {
                                     $default = model[ v ].default;
-                                    if (typeof $default === 'function') {
+                                    if (typeof $default === &apos;function&apos;) {
                                         $default = $default();
                                     }
                                 }
                                 query =
                                     `ALTER TABLE \`${modelName}\` ADD COLUMN \`${v}\` ` +
                                     `${me.types(model, v)}` +
-                                    `${model[ v ].nullable ? '' : ' NOT NULL'}` +
-                                    `${model[ v ].unique ? ' UNIQUE' : ''}` +
-                                    `${$default ? ` DEFAULT '${$default}'` : ''};`;
+                                    `${model[ v ].nullable ? &apos;&apos; : &apos; NOT NULL&apos;}` +
+                                    `${model[ v ].unique ? &apos; UNIQUE&apos; : &apos;&apos;}` +
+                                    `${$default ? ` DEFAULT &apos;${$default}&apos;` : &apos;&apos;};`;
                                 if (!me.dryRun) {
                                     proms.push(me.run(query));
                                 } else {
@@ -264,11 +323,26 @@ class MySqlConnection extends BaseDBConnection {
         }).then(function() {
             me.disconnect();
             $LogProvider.mysqlInfo(
-                `Successfully Synced & Migrated ${cyan(me.name)}`
+                `Successfully Synced &amp; Migrated ${cyan(me.name)}`
             );
             p.exit(0);
         });
     }
 }
 
-export default MySqlConnection;
+export default MySqlConnection;</code></pre>
+</div>
+
+<footer class="footer">
+  Generated by <a href="https://esdoc.org">ESDoc<span data-ice="esdocVersion">(0.1.2)</span></a>
+</footer>
+
+<script src="script/search_index.js"></script>
+<script src="script/search.js"></script>
+<script src="script/pretty-print.js"></script>
+<script src="script/inherited-summary.js"></script>
+<script src="script/test-summary.js"></script>
+<script src="script/inner-link.js"></script>
+<script src="script/patch-for-local.js"></script>
+</body>
+</html>

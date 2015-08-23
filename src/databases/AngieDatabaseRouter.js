@@ -75,6 +75,8 @@ function AngieDatabaseRouter(args) {
 
     if (db && db.type) {
         switch (db.type.toLowerCase()) {
+
+            // TODO you have to sys require these
             case 'mysql':
                 database = new MySqlConnection(name, db, destructive, dryRun);
                 break;

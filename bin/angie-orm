@@ -3,7 +3,7 @@
 'use strict';
 
 // TODO check to see that the most up to date version is installed
-global.ANGIE_ORM_VERSION = '0.0.2';
+global.ANGIE_ORM_VERSION = '0.0.3';
 
 require('babel/register')({
     only: [ '**/node_modules/angie*/**', '**/src/**' ],
