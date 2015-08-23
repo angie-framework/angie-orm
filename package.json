@@ -9,7 +9,7 @@
   "preferGlobal": true,
   "scripts": {
     "start": "node src/index.js",
-    "test": "gulp",
+    "test": "gulp test",
     "publish": "gulp"
   },
   "engines": {
