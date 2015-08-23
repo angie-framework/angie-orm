@@ -7,7 +7,7 @@
 // System Modules
 import util from                    'util';
 import {blue} from                  'chalk';
-import $LogProvider from            'angie-log-dist';
+import $LogProvider from            'angie-log';
 
 // Angie ORM Modules
 import BaseModel from               './models/BaseModel';
