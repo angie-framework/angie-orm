@@ -1,0 +1,4284 @@
+[
+  {
+    "kind": "file",
+    "static": true,
+    "variation": null,
+    "name": "src/Angie.js",
+    "memberof": null,
+    "longname": "src/Angie.js",
+    "access": null,
+    "description": null,
+    "lineNumber": 8,
+    "content": "/**\n * @module Angie.js\n * @author Joe Groseclose <@benderTheCrime>\n * @date 8/23/2015\n */\n\n// System Modules\nimport util from                    'util';\nimport {blue} from                  'chalk';\nimport $LogProvider from            'angie-log';\n\n// Angie ORM Modules\nimport BaseModel from               './models/BaseModel';\nimport * as $$FieldProvider from    './models/$Fields';\nimport {\n    $$InvalidModelConfigError\n} from                              './util/$ExceptionsProvider';\n\n\n// Setup the app or inherit the app from the `global` Namespace\nconst p = process;\nlet app;\n\nif (global.app) {\n    app = global.app;\n} else {\n    app = global.app = {\n        services: {},\n        $$registry: {},\n        $$register(c, name, obj) {\n\n            // `component` and `app.component` should always be defined\n            if (name && obj) {\n                this.$$registry[ name ] = 'Models';\n                this.Models[ name ] = obj;\n            } else {\n                $LogProvider.warn(\n                    'Invalid name or object called on app.$register'\n                );\n            }\n            return this;\n        },\n        $$load() {\n            const fs = require('fs');\n\n            // Do not call load twice\n            if (this.$$loaded === true) {\n                return new Promise((r) => { r(); });\n            }\n\n            let me = this;\n            return new Promise(function(resolve) {\n                let files = [];\n\n                // Find ALL the files\n                try {\n                    files = files.concat(fs.readdirSync(\n                        `${p.cwd()}/src`\n                    ).map((v) => `${p.cwd()}/src/${v}`));\n                } catch(e) {}\n                try {\n                    files = files.concat(fs.readdirSync(\n                        `${p.cwd()}/src/Models`\n                    ).map((v) => `${p.cwd()}/src/Models/${v}`));\n                } catch(e) {}\n                try {\n                    files = files.concat(fs.readdirSync(\n                        `${p.cwd()}/src/models`\n                    ).map((v) => `${p.cwd()}/src/models/${v}`));\n                } catch(e) {}\n\n                // Make sure the files are js/es6 files, then try to load them\n                files.filter(\n                    (v) => [ 'js', 'es6' ].indexOf(v.split('.').pop()) > -1\n                ).forEach(function(v) {\n                    try {\n                        require(v);\n                        $LogProvider.info(`Successfully loaded file ${blue(v)}`);\n                    } catch(e) {\n                        $LogProvider.error(e);\n                    }\n                });\n\n                // Set the app in a loaded state\n                me.$$loaded = true;\n                resolve();\n            });\n        },\n        $$loaded: false\n    };\n    app.$Fields = $$FieldProvider;\n    app.services.$Log = $LogProvider;\n    app.$$registry.$Log = 'services';\n}\n\napp.services.$Fields = $$FieldProvider;\napp.$$registry.$Fields = 'services';\napp.Models = {};\n\n/**\n * @desc Creates an Angie ORM Model provider. The second parameter\n * of the Model function must be an object or a function/class which returns an\n * object, with properties defining the Model itself (name, fields, etc). Note\n * that the first bound paramter to the second argument will always be $Fields\n * if the second argument is a function.\n * @since 0.0.1\n * @access public\n * @param {string} name The name of the constant being created\n * @param {function|object} obj The Model value, returns Models params.\n */\napp.Model = function Model(name, Obj = {}) {\n    let model = typeof Obj === 'function' ?\n        new Obj($$FieldProvider) :\n            typeof Obj === 'object' ? Obj : undefined;\n\n    model.name = model.name || name;\n    let instance = new BaseModel(model.name);\n\n    // Mock extend obj onto the instance\n    if (typeof model === 'object') {\n        instance = util._extend(instance, model);\n    } else {\n        throw new $$InvalidModelConfigError(name);\n    }\n    this.$$register('Models', model.name, instance);\n\n    // We need to account for whether this Model creates a m2m reference and\n    // create the reverse\n    for (let key in model) {\n        let field = model[ key ];\n        if (field.type && field.type === 'ManyToManyField') {\n            this.Models[ field.rel ][ field.name ] =\n            new $$FieldProvider.ManyToManyField(field.name, {\n                crossReferenceTableId: field.crossReferenceTableId,\n                crossReferenceTable: field.crossReferenceTable,\n                name: field.rel\n            });\n        }\n    }\n\n    return this;\n};"
+  },
+  {
+    "kind": "variable",
+    "static": true,
+    "variation": null,
+    "name": "p",
+    "memberof": "src/Angie.js",
+    "longname": "src/Angie.js~p",
+    "access": null,
+    "export": false,
+    "importPath": "angie-orm/src/Angie.js",
+    "importStyle": null,
+    "description": null,
+    "lineNumber": 21,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "kind": "function",
+    "static": true,
+    "variation": null,
+    "name": "Model",
+    "memberof": "src/Angie.js",
+    "longname": "src/Angie.js~Model",
+    "access": "public",
+    "export": false,
+    "importPath": "angie-orm/src/Angie.js",
+    "importStyle": null,
+    "description": "Creates an Angie ORM Model provider. The second parameter\nof the Model function must be an object or a function/class which returns an\nobject, with properties defining the Model itself (name, fields, etc). Note\nthat the first bound paramter to the second argument will always be $Fields\nif the second argument is a function.",
+    "lineNumber": 111,
+    "since": "0.0.1",
+    "params": [
+      {
+        "nullable": null,
+        "types": [
+          "string"
+        ],
+        "spread": false,
+        "optional": false,
+        "name": "name",
+        "description": "The name of the constant being created"
+      },
+      {
+        "nullable": null,
+        "types": [
+          "function|object"
+        ],
+        "spread": false,
+        "optional": false,
+        "name": "obj",
+        "description": "The Model value, returns Models params."
+      }
+    ],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "file",
+    "static": true,
+    "variation": null,
+    "name": "src/databases/AngieDatabaseRouter.js",
+    "memberof": null,
+    "longname": "src/databases/AngieDatabaseRouter.js",
+    "access": null,
+    "description": null,
+    "lineNumber": 8,
+    "content": "/**\n * @module AngieDatabaseRouter.js\n * @author Joe Groseclose <@benderTheCrime>\n * @date 8/23/2015\n */\n\n// System Modules\nimport fs from                          'fs';\n\n// Angie ORM Modules\nimport SqliteConnection from            './SqliteConnection';\nimport MySqlConnection from             './MySqlConnection';\nimport FirebaseConnection from          './FirebaseConnection';\nimport MongoDBConnection from           './MongoDBConnection';\nimport {\n    $$InvalidConfigError,\n    $$InvalidDatabaseConfigError\n} from                                  '../util/$ExceptionsProvider';\n\nconst p = process;\nlet app,\n    dbs = {},\n    config;\n\nfunction AngieDatabaseRouter(args) {\n    app = app || global.app;\n\n    let database,\n        name = 'default';\n\n    if (!config && !global.app.$$config) {\n        try {\n            const $$config = JSON.parse(\n                fs.readFileSync(`${process.cwd()}/AngieORMFile.json`)\n            );\n\n            if (typeof $$config === 'object') {\n                global.app.$$config = $$config;\n                Object.freeze(app.$$config);\n            } else {\n                throw new Error();\n            }\n        } catch(e) {\n            throw new $$InvalidConfigError();\n        }\n    }\n    config = global.app.$$config;\n\n\n\n\n    if (args instanceof Array) {\n        for (let arg of args) {\n            if (Object.keys(config.databases).indexOf(arg) > -1) {\n                name = arg;\n                break;\n            }\n        }\n    } else if (typeof args === 'string') {\n        name = args;\n    }\n\n    // Check to see if the database is in memory\n    database = dbs[ name ];\n    if (database) {\n        return database;\n    }\n\n    // Try to fetch database by name or try to grab default\n    let db = config.databases && config.databases[ name ] ?\n            config.databases[ name ] : config.databases.default ?\n                config.databases.default : null,\n        destructive = p.argv.some((v) => /--destructive/i.test(v)),\n        dryRun = p.argv.some((v) => /--dry([-_])?run/i.test(v));\n\n    if (db && db.type) {\n        switch (db.type.toLowerCase()) {\n\n            // TODO you have to sys require these\n            case 'mysql':\n                database = new MySqlConnection(name, db, destructive, dryRun);\n                break;\n            case 'mongodb':\n                database = new MongoDBConnection(db, destructive, dryRun);\n                break;\n            case 'firebase':\n                database = new FirebaseConnection(db, destructive, dryRun);\n                break;\n            default:\n                database = new SqliteConnection(db, destructive, dryRun);\n        }\n    }\n\n    if (!database) {\n        throw new $$InvalidDatabaseConfigError();\n    }\n\n    // Setup a cache of database connections in memory already\n    dbs[ name ] = database;\n    return database;\n}\n\nexport default AngieDatabaseRouter;\n"
+  },
+  {
+    "kind": "variable",
+    "static": true,
+    "variation": null,
+    "name": "p",
+    "memberof": "src/databases/AngieDatabaseRouter.js",
+    "longname": "src/databases/AngieDatabaseRouter.js~p",
+    "access": null,
+    "export": false,
+    "importPath": "angie-orm/src/databases/AngieDatabaseRouter.js",
+    "importStyle": null,
+    "description": null,
+    "lineNumber": 20,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "kind": "function",
+    "static": true,
+    "variation": null,
+    "name": "AngieDatabaseRouter",
+    "memberof": "src/databases/AngieDatabaseRouter.js",
+    "longname": "src/databases/AngieDatabaseRouter.js~AngieDatabaseRouter",
+    "access": null,
+    "export": true,
+    "importPath": "angie-orm/src/databases/AngieDatabaseRouter.js",
+    "importStyle": "AngieDatabaseRouter",
+    "description": null,
+    "lineNumber": 25,
+    "undocument": true,
+    "params": [
+      {
+        "name": "args",
+        "types": [
+          "*"
+        ]
+      }
+    ],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "file",
+    "static": true,
+    "variation": null,
+    "name": "src/databases/BaseDBConnection.js",
+    "memberof": null,
+    "longname": "src/databases/BaseDBConnection.js",
+    "access": null,
+    "description": null,
+    "lineNumber": 8,
+    "content": "/**\n * @module BaseDBConnection.js\n * @author Joe Groseclose <@benderTheCrime>\n * @date 8/23/2015\n */\n\n// System Modules\nimport util from                        'util';\nimport {cyan} from                      'chalk';\nimport $LogProvider from                'angie-log';\n\n// Angie ORM Modules\nimport {\n    $$InvalidModelReferenceError,\n    $$InvalidModelFieldReferenceError,\n    $$InvalidRelationCrossReferenceError\n} from                                  '../util/$ExceptionsProvider';\n\n// Keys we do not necessarily want to parse as query arguments\nconst p = process,\n      IGNORE_KEYS = [\n          'database',\n          'tail',\n          'head',\n          'rows',\n          'values',\n          'model'\n      ];\n\n/**\n * @desc BaseDBConnection is a private class which is not exposed to the Angie\n * provider. It contains all of the methods quintessential to making DB queries\n * regardless of DB vehicle. Some of the methods in this class are specific to\n * SQL type DBs and will need to be replaced when subclassed. This should be the\n * base class used for each DB type\n * @since 0.2.3\n * @access private\n */\nclass BaseDBConnection {\n\n    /**\n     * @param {object} database The database object to which the connection is\n     * being made\n     * @param {boolean} destructive Should destructive migrations be run?\n     */\n    constructor(database, destructive = false, dryRun = false) {\n        this.database = database;\n        this.destructive = destructive;\n        this.dryRun = dryRun;\n    }\n    models() {\n        return this._models;\n    }\n    all(args = {}, fetchQuery = '', filterQuery = '') {\n        if (!args.model || !args.model.name) {\n            throw new $$InvalidModelReferenceError();\n        }\n\n        let values = '*';\n        if (typeof args.values === 'object' && args.values.length) {\n            values = args.values;\n            if (values.indexOf('id') === -1) {\n                values.unshift('id');\n            }\n        }\n\n        return `SELECT ${values} FROM ${args.model.name}` +\n            `${filterQuery ? ` WHERE ${filterQuery}` : ''}` +\n            `${fetchQuery ? ` ${fetchQuery}` : ''};`;\n    }\n    fetch(args = {}, filterQuery = '') {\n        let ord = 'ASC';\n\n        if (\n            (args.head && args.head === false) ||\n            (args.tail && args.tail === true)\n        ) {\n            ord = 'DESC';\n        }\n\n        const int = args.rows || 1,\n              fetchQuery = `ORDER BY id ${ord} LIMIT ${int}`;\n        return this.all(args, fetchQuery, filterQuery);\n    }\n    filter(args = {}) {\n        return this.fetch(args, this.$$filterQuery(args));\n    }\n\n    /**\n     * @desc _fitlerQuery builds the \"WHERE\" statements of queries. It is\n     * responsible for parsing all query conditions\n     * @since 0.2.2\n     * @param {object} args Object representation of the arguments\n     * @param {string} args.key Name and value/conditions of field to be parsed.\n     * Values can be prefixed with the following comparators:\n     *     \"~\": \"Like\", >, >=, <, <=\n     * @param {object|Array<>} args.values Fields for an \"in\" query\n     * @returns {string} A query string to be passed to the performed query\n     * @access private\n     */\n    $$filterQuery(args) {\n        let filterQuery = [],\n            fn = function(k, v) {\n\n                // If we're dealing with a number...\n                if (typeof v === 'number') {\n                    return `${k}=${v}`;\n                } else if (v.indexOf('~') > -1) {\n\n                    // If there is a like operator, add a like phrase\n                    return `${k} like '%${v.replace(/~/g, '')}%'`;\n                } else if (\n                    /(<=?|>=?)[^<>=]+/.test(v) &&\n                    v.indexOf('>>') === -1 &&\n                    v.indexOf('<<') === -1\n                ) {\n\n                    // If there is a condition, parse it, use as operator\n                    // ^^ TODO there has to be a better way to do that condition\n                    return v.replace(/(<=?|>=?)([^<>=]+)/, function(m, p, v) {\n                        return `${k}${p}${!isNaN(v) ? v : `'${v}'` }`;\n                    });\n                }\n\n                // Otherwise, return equality\n                return `${k}='${v.replace(/[<>=]*/g, '')}'`;\n            };\n        for (let key in args) {\n            if (IGNORE_KEYS.indexOf(key) > -1) {\n                continue;\n            }\n            if (args[ key ] && typeof args[ key ] !== 'object') {\n                filterQuery.push(fn(key, args[ key ]));\n            } else {\n                filterQuery.push(`${key} in ${this.$$queryInString(args[ key ])}`);\n            }\n        }\n        return filterQuery.length ? `${filterQuery.join(' AND ')}` : '';\n    }\n    create(args = {}) {\n        let keys = Object.keys(args),\n            queryKeys = [],\n            values = [];\n\n        if (!args.model || !args.model.name) {\n            throw new $$InvalidModelReferenceError();\n        }\n\n        keys.forEach(function(key) {\n            if (IGNORE_KEYS.indexOf(key) === -1) {\n                queryKeys.push(key);\n                values.push(`'${args[key]}'`);\n            }\n        });\n\n        return `INSERT INTO ${args.model.name} (${queryKeys.join(', ')}) ` +\n            `VALUES (${values.join(', ')});`;\n    }\n    delete(args = {}) {\n        return `DELETE FROM ${args.model.name} WHERE ${this.$$filterQuery(args)};`;\n    }\n    update(args = {}) {\n        if (!args.model || !args.model.name) {\n            throw new $$InvalidModelReferenceError();\n        }\n\n        let filterQuery = this.$$filterQuery(args),\n            idSet = this.$$queryInString(args.rows, 'id');\n        if (!filterQuery) {\n            $LogProvider.warn('No filter query in UPDATE statement.');\n        } else {\n            return `UPDATE ${args.model.name} SET ${filterQuery} WHERE id in ${idSet};`;\n        }\n    }\n\n    /**\n     * @desc $$queryInString builds any \"in\" query statements in the query\n     * arguments\n     * @since 0.2.2\n     * @param {object} args Object representation of the arguments\n     * @param {string} args.key Name and value/conditions of field to be parsed\n     * @param {object|Array<>} args.values Fields for an \"in\" query\n     * @param {string} key The name of the key to parse for \"in\" arguments\n     * @returns {string} A query string to be passed to the performed query\n     * @access private\n     */\n    $$queryInString(args = {}, key) {\n        let fieldSet = [];\n        if (key) {\n            args.forEach(function(row) {\n                fieldSet.push(`'${row[ key ]}'`);\n            });\n        } else if (args instanceof Array) {\n            fieldSet = args.map((v) => `'${v}'`);\n        }\n        return `(${fieldSet.length ? fieldSet.join(',') : ''})`;\n    }\n    sync() {\n        let me = this;\n\n        // Every instance of sync needs a registry of the models, which implies\n        return global.app.$$load().then(function() {\n            me._models = global.app.Models;\n            $LogProvider.info(\n                `Synccing database: ${cyan(me.database.name || me.database.alias)}`\n            );\n        });\n    }\n    migrate() {\n        let me = this;\n\n        // Every instance of sync needs a registry of the models, which implies\n        return global.app.$$load().then(function() {\n            me._models = global.app.Models;\n            $LogProvider.info(\n                `Migrating database: ${cyan(me.database.name || me.database.alias)}`\n            );\n        });\n    }\n    $$queryset(model = {}, query, rows = [], errors) {\n        const queryset = new AngieDBObject(this, model, query);\n        let results = [],\n            manyToManyFieldNames = [],\n            rels = [],\n            relFieldNames = {},\n            relArgs = {},\n            proms = [];\n\n        for (let key in model) {\n            let field = model[ key ];\n            if (field.type && field.type === 'ManyToManyField') {\n                manyToManyFieldNames.push(key);\n            }\n        }\n\n        if (rows instanceof Array) {\n            rows.forEach(function(v) {\n\n                // Create a copy to be added to the raw results set\n                let $v = util._extend({}, v);\n\n                // Add update method to row to allow the single row to be\n                // updated\n                v.update = queryset.$$update.bind(queryset, v);\n\n                for (let key of manyToManyFieldNames) {\n                    const field = model[ key ],\n                          many = v[ key ] = {};\n                    for (let method of [ 'add', 'remove' ]) {\n                        many[ method ] =\n                            queryset.$$addOrRemove.bind(\n                                queryset,\n                                method,\n                                field,\n                                v.id\n                            );\n                    }\n                    for (let method of [ 'all', 'fetch', 'filter' ]) {\n                        many[ method ] = queryset.$$readMethods.bind(\n                            queryset,\n                            method,\n                            field,\n                            v.id\n                        );\n                    }\n                }\n\n                // Find all of the foreign key fields\n                for (let key in v) {\n                    const field = model[ key ];\n                    if (field && (\n                            field.nesting === true ||\n                            field.deepNesting === true\n                        )\n                    ) {\n                        rels.push(field.rel);\n                        relFieldNames[ field.rel ] = key;\n                        relArgs[ field.rel ] = rows.map((v) => v.id);\n                    }\n                }\n\n                results.push($v);\n            });\n        }\n\n        // Add update method to row set so that the whole queryset can be\n        // updated\n        rows.update = queryset.$$update.bind(queryset, rows);\n\n        // Remove reference methods\n        delete queryset.$$update;\n        delete queryset.$$addOrRemove;\n        delete queryset.$$readMethods;\n\n        // Instantiate a promise for each of the foreign key fields in the query\n        rels.forEach(function(v) {\n\n            // Reference the relative object\n            proms.push(global.app.Models[ v ].filter({\n                database: model.$$database.name,\n                id: relArgs[ v ]\n            }).then(function(queryset) {\n\n                // Add errors to queryset errors\n                if (errors === null) {\n                    errors = [];\n                }\n\n                // Add any errors to the queryset\n                errors.push(queryset.errors);\n\n                rows.forEach(function(row, i) {\n                    queryset.forEach(function(queryrow) {\n                        if (\n                            !isNaN(+row[ relFieldNames[ v ] ]) &&\n                            queryrow.hasOwnProperty('id') &&\n                            row[ relFieldNames[ v ] ] === queryrow.id\n                        ) {\n\n                            // Assign the nested row\n                            results[ i ][ relFieldNames[ v ] ] =\n                                queryset.results[ i ];\n                            row[ relFieldNames[ v ] ] = queryrow;\n                        } else {\n                            results[ i ][ relFieldNames[ v ] ] =\n                                row[ relFieldNames[ v ] ] = null;\n                        }\n                    });\n                });\n            }));\n        });\n\n        return Promise.all(proms).then(function() {\n\n            // Resolves to a value in the connections currently\n            return util._extend(\n                rows,\n                {\n\n                    // The raw query results\n                    results: results,\n\n                    // Any errors\n                    errors: errors,\n\n                    first: AngieDBObject.prototype.first,\n                    last: AngieDBObject.prototype.last\n                },\n                queryset\n            );\n        });\n    }\n    $$name(modelName) {\n        modelName = modelName.replace(/([A-Z])/g, '_$1').toLowerCase();\n        if (modelName.charAt(0) === '_') {\n            modelName = modelName.slice(1, modelName.length);\n        }\n        return modelName;\n    }\n}\n\nclass AngieDBObject {\n    constructor(database, model, query = '') {\n        if (!database || !model) {\n            return;\n        }\n        this.database = database;\n        this.model = model;\n        this.query = query;\n    }\n    first() {\n        return this[0];\n    }\n    last() {\n        return this.pop();\n    }\n    $$update(rows, args = {}) {\n\n        // This should only be called internally, so it's not a huge hack:\n        // rows either references the whole queryset or just a single row\n        args.rows = rows instanceof Array ? rows : [ rows ];\n        args.model = this.model;\n\n        if (typeof args !== 'object') {\n            return;\n        }\n\n        let updateObj = {};\n        for (let key in args) {\n            const val = args[ key ] || null;\n            if (IGNORE_KEYS.indexOf(key) > -1) {\n                continue;\n            } else if (\n                this.model[ key ] &&\n                this.model[ key ].validate &&\n                this.model[ key ].validate(val)\n            ) {\n                updateObj[ key ] = val;\n            } else {\n                throw new $$InvalidModelFieldReferenceError(this.model.name, key);\n            }\n        }\n\n        util._extend(args, updateObj);\n        return this.database.update(args);\n    }\n    $$addOrRemove(method, field, id, obj = {}, extra = {}) {\n        switch (method) {\n            case 'add':\n                method = '$createUnlessExists';\n                break;\n            default: // 'remove'\n                method = 'delete';\n        }\n\n        // Get database, other extra options\n        obj = util._extend(obj, extra);\n\n        // Check to see that there is an existing related object\n        return global.app.Models[ field.rel ].exists(obj).then(function(v) {\n\n            // Check to see if a reference already exists <->\n            if (v) {\n                let $obj = util._extend({\n                    [ `${field.name}_id`]: id,\n                    [ `${field.rel}_id` ]: obj.id\n                }, extra);\n                return field.crossReferenceTable[ method ]($obj);\n            }\n            throw new Error();\n        }).catch(function() {\n            throw new $$InvalidRelationCrossReferenceError(method, field, id, obj);\n        });\n    }\n    $$readMethods(method, field, id, args = {}) {\n        args = util._extend(args, {\n            [ `${field.name}_id` ]: id,\n            values: [ `${field.rel}_id` ]\n        });\n        method = [ 'filter', 'fetch' ].indexOf(method) > -1 ? method : 'filter';\n        return field.crossReferenceTable[ method ](args);\n    }\n}\n\nclass $$DatabaseConnectivityError extends Error {\n    constructor(database) {\n        let message;\n        switch (database.type) {\n            case 'mysql':\n                message = 'Could not find MySql database ' +\n                    `${cyan(database.name || database.alias)}@` +\n                    `${database.host || '127.0.0.1'}:${database.port || 3306}`;\n                break;\n            default:\n                message = `Could not find ${cyan(database.name)} in filesystem.`;\n        }\n        $LogProvider.error(message);\n        super();\n        p.exit(1);\n    }\n}\n\nexport default BaseDBConnection;\nexport {$$DatabaseConnectivityError};\n"
+  },
+  {
+    "kind": "variable",
+    "static": true,
+    "variation": null,
+    "name": "p",
+    "memberof": "src/databases/BaseDBConnection.js",
+    "longname": "src/databases/BaseDBConnection.js~p",
+    "access": null,
+    "export": false,
+    "importPath": "angie-orm/src/databases/BaseDBConnection.js",
+    "importStyle": null,
+    "description": null,
+    "lineNumber": 20,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "kind": "class",
+    "static": true,
+    "variation": null,
+    "name": "AngieDBObject",
+    "memberof": "src/databases/BaseDBConnection.js",
+    "longname": "src/databases/BaseDBConnection.js~AngieDBObject",
+    "access": null,
+    "export": false,
+    "importPath": "angie-orm/src/databases/BaseDBConnection.js",
+    "importStyle": null,
+    "description": null,
+    "lineNumber": 362,
+    "undocument": true,
+    "interface": false
+  },
+  {
+    "kind": "constructor",
+    "static": false,
+    "variation": null,
+    "name": "constructor",
+    "memberof": "src/databases/BaseDBConnection.js~AngieDBObject",
+    "longname": "src/databases/BaseDBConnection.js~AngieDBObject#constructor",
+    "access": null,
+    "description": null,
+    "lineNumber": 363,
+    "undocument": true,
+    "params": [
+      {
+        "name": "database",
+        "types": [
+          "*"
+        ]
+      },
+      {
+        "name": "model",
+        "types": [
+          "*"
+        ]
+      },
+      {
+        "name": "query",
+        "optional": true,
+        "types": [
+          "string"
+        ],
+        "defaultRaw": "",
+        "defaultValue": ""
+      }
+    ],
+    "generator": false
+  },
+  {
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "database",
+    "memberof": "src/databases/BaseDBConnection.js~AngieDBObject",
+    "longname": "src/databases/BaseDBConnection.js~AngieDBObject#database",
+    "access": null,
+    "description": null,
+    "lineNumber": 367,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "model",
+    "memberof": "src/databases/BaseDBConnection.js~AngieDBObject",
+    "longname": "src/databases/BaseDBConnection.js~AngieDBObject#model",
+    "access": null,
+    "description": null,
+    "lineNumber": 368,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "query",
+    "memberof": "src/databases/BaseDBConnection.js~AngieDBObject",
+    "longname": "src/databases/BaseDBConnection.js~AngieDBObject#query",
+    "access": null,
+    "description": null,
+    "lineNumber": 369,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "first",
+    "memberof": "src/databases/BaseDBConnection.js~AngieDBObject",
+    "longname": "src/databases/BaseDBConnection.js~AngieDBObject#first",
+    "access": null,
+    "description": null,
+    "lineNumber": 371,
+    "undocument": true,
+    "params": [],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "last",
+    "memberof": "src/databases/BaseDBConnection.js~AngieDBObject",
+    "longname": "src/databases/BaseDBConnection.js~AngieDBObject#last",
+    "access": null,
+    "description": null,
+    "lineNumber": 374,
+    "undocument": true,
+    "params": [],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "$$update",
+    "memberof": "src/databases/BaseDBConnection.js~AngieDBObject",
+    "longname": "src/databases/BaseDBConnection.js~AngieDBObject#$$update",
+    "access": null,
+    "description": null,
+    "lineNumber": 377,
+    "undocument": true,
+    "params": [
+      {
+        "name": "rows",
+        "types": [
+          "*"
+        ]
+      },
+      {
+        "name": "args",
+        "optional": true,
+        "types": [
+          "{}"
+        ],
+        "defaultRaw": {},
+        "defaultValue": "{}"
+      }
+    ],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "$$addOrRemove",
+    "memberof": "src/databases/BaseDBConnection.js~AngieDBObject",
+    "longname": "src/databases/BaseDBConnection.js~AngieDBObject#$$addOrRemove",
+    "access": null,
+    "description": null,
+    "lineNumber": 407,
+    "undocument": true,
+    "params": [
+      {
+        "name": "method",
+        "types": [
+          "*"
+        ]
+      },
+      {
+        "name": "field",
+        "types": [
+          "*"
+        ]
+      },
+      {
+        "name": "id",
+        "types": [
+          "*"
+        ]
+      },
+      {
+        "name": "obj",
+        "optional": true,
+        "types": [
+          "{}"
+        ],
+        "defaultRaw": {},
+        "defaultValue": "{}"
+      },
+      {
+        "name": "extra",
+        "optional": true,
+        "types": [
+          "{}"
+        ],
+        "defaultRaw": {},
+        "defaultValue": "{}"
+      }
+    ],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "$$readMethods",
+    "memberof": "src/databases/BaseDBConnection.js~AngieDBObject",
+    "longname": "src/databases/BaseDBConnection.js~AngieDBObject#$$readMethods",
+    "access": null,
+    "description": null,
+    "lineNumber": 435,
+    "undocument": true,
+    "params": [
+      {
+        "name": "method",
+        "types": [
+          "*"
+        ]
+      },
+      {
+        "name": "field",
+        "types": [
+          "*"
+        ]
+      },
+      {
+        "name": "id",
+        "types": [
+          "*"
+        ]
+      },
+      {
+        "name": "args",
+        "optional": true,
+        "types": [
+          "{}"
+        ],
+        "defaultRaw": {},
+        "defaultValue": "{}"
+      }
+    ],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "class",
+    "static": true,
+    "variation": null,
+    "name": "$$DatabaseConnectivityError",
+    "memberof": "src/databases/BaseDBConnection.js",
+    "longname": "src/databases/BaseDBConnection.js~$$DatabaseConnectivityError",
+    "access": null,
+    "export": false,
+    "importPath": "angie-orm/src/databases/BaseDBConnection.js",
+    "importStyle": null,
+    "description": null,
+    "lineNumber": 445,
+    "undocument": true,
+    "interface": false,
+    "extends": [
+      "Error"
+    ]
+  },
+  {
+    "kind": "constructor",
+    "static": false,
+    "variation": null,
+    "name": "constructor",
+    "memberof": "src/databases/BaseDBConnection.js~$$DatabaseConnectivityError",
+    "longname": "src/databases/BaseDBConnection.js~$$DatabaseConnectivityError#constructor",
+    "access": null,
+    "description": null,
+    "lineNumber": 446,
+    "undocument": true,
+    "params": [
+      {
+        "name": "database",
+        "types": [
+          "*"
+        ]
+      }
+    ],
+    "generator": false
+  },
+  {
+    "kind": "class",
+    "static": true,
+    "variation": null,
+    "name": "BaseDBConnection",
+    "memberof": "src/databases/BaseDBConnection.js",
+    "longname": "src/databases/BaseDBConnection.js~BaseDBConnection",
+    "access": "private",
+    "export": true,
+    "importPath": "angie-orm/src/databases/BaseDBConnection.js",
+    "importStyle": "BaseDBConnection",
+    "description": "BaseDBConnection is a private class which is not exposed to the Angie\nprovider. It contains all of the methods quintessential to making DB queries\nregardless of DB vehicle. Some of the methods in this class are specific to\nSQL type DBs and will need to be replaced when subclassed. This should be the\nbase class used for each DB type",
+    "lineNumber": 39,
+    "since": "0.2.3",
+    "interface": false
+  },
+  {
+    "kind": "constructor",
+    "static": false,
+    "variation": null,
+    "name": "constructor",
+    "memberof": "src/databases/BaseDBConnection.js~BaseDBConnection",
+    "longname": "src/databases/BaseDBConnection.js~BaseDBConnection#constructor",
+    "access": null,
+    "description": null,
+    "lineNumber": 46,
+    "params": [
+      {
+        "nullable": null,
+        "types": [
+          "object"
+        ],
+        "spread": false,
+        "optional": false,
+        "name": "database",
+        "description": "The database object to which the connection is\nbeing made"
+      },
+      {
+        "nullable": null,
+        "types": [
+          "boolean"
+        ],
+        "spread": false,
+        "optional": false,
+        "name": "destructive",
+        "description": "Should destructive migrations be run?"
+      }
+    ],
+    "generator": false
+  },
+  {
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "database",
+    "memberof": "src/databases/BaseDBConnection.js~BaseDBConnection",
+    "longname": "src/databases/BaseDBConnection.js~BaseDBConnection#database",
+    "access": null,
+    "description": null,
+    "lineNumber": 47,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "destructive",
+    "memberof": "src/databases/BaseDBConnection.js~BaseDBConnection",
+    "longname": "src/databases/BaseDBConnection.js~BaseDBConnection#destructive",
+    "access": null,
+    "description": null,
+    "lineNumber": 48,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "dryRun",
+    "memberof": "src/databases/BaseDBConnection.js~BaseDBConnection",
+    "longname": "src/databases/BaseDBConnection.js~BaseDBConnection#dryRun",
+    "access": null,
+    "description": null,
+    "lineNumber": 49,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "models",
+    "memberof": "src/databases/BaseDBConnection.js~BaseDBConnection",
+    "longname": "src/databases/BaseDBConnection.js~BaseDBConnection#models",
+    "access": null,
+    "description": null,
+    "lineNumber": 51,
+    "undocument": true,
+    "params": [],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "all",
+    "memberof": "src/databases/BaseDBConnection.js~BaseDBConnection",
+    "longname": "src/databases/BaseDBConnection.js~BaseDBConnection#all",
+    "access": null,
+    "description": null,
+    "lineNumber": 54,
+    "undocument": true,
+    "params": [
+      {
+        "name": "args",
+        "optional": true,
+        "types": [
+          "{}"
+        ],
+        "defaultRaw": {},
+        "defaultValue": "{}"
+      },
+      {
+        "name": "fetchQuery",
+        "optional": true,
+        "types": [
+          "string"
+        ],
+        "defaultRaw": "",
+        "defaultValue": ""
+      },
+      {
+        "name": "filterQuery",
+        "optional": true,
+        "types": [
+          "string"
+        ],
+        "defaultRaw": "",
+        "defaultValue": ""
+      }
+    ],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "fetch",
+    "memberof": "src/databases/BaseDBConnection.js~BaseDBConnection",
+    "longname": "src/databases/BaseDBConnection.js~BaseDBConnection#fetch",
+    "access": null,
+    "description": null,
+    "lineNumber": 71,
+    "undocument": true,
+    "params": [
+      {
+        "name": "args",
+        "optional": true,
+        "types": [
+          "{}"
+        ],
+        "defaultRaw": {},
+        "defaultValue": "{}"
+      },
+      {
+        "name": "filterQuery",
+        "optional": true,
+        "types": [
+          "string"
+        ],
+        "defaultRaw": "",
+        "defaultValue": ""
+      }
+    ],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "filter",
+    "memberof": "src/databases/BaseDBConnection.js~BaseDBConnection",
+    "longname": "src/databases/BaseDBConnection.js~BaseDBConnection#filter",
+    "access": null,
+    "description": null,
+    "lineNumber": 85,
+    "undocument": true,
+    "params": [
+      {
+        "name": "args",
+        "optional": true,
+        "types": [
+          "{}"
+        ],
+        "defaultRaw": {},
+        "defaultValue": "{}"
+      }
+    ],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "$$filterQuery",
+    "memberof": "src/databases/BaseDBConnection.js~BaseDBConnection",
+    "longname": "src/databases/BaseDBConnection.js~BaseDBConnection#$$filterQuery",
+    "access": "private",
+    "description": "_fitlerQuery builds the \"WHERE\" statements of queries. It is\nresponsible for parsing all query conditions",
+    "lineNumber": 101,
+    "since": "0.2.2",
+    "unknown": [
+      {
+        "tagName": "@returns",
+        "tagValue": "{string} A query string to be passed to the performed query"
+      }
+    ],
+    "params": [
+      {
+        "nullable": null,
+        "types": [
+          "object"
+        ],
+        "spread": false,
+        "optional": false,
+        "name": "args",
+        "description": "Object representation of the arguments"
+      },
+      {
+        "nullable": null,
+        "types": [
+          "string"
+        ],
+        "spread": false,
+        "optional": false,
+        "name": "args.key",
+        "description": "Name and value/conditions of field to be parsed.\nValues can be prefixed with the following comparators:\n    \"~\": \"Like\", >, >=, <, <="
+      },
+      {
+        "nullable": null,
+        "types": [
+          "object|Array<>"
+        ],
+        "spread": false,
+        "optional": false,
+        "name": "args.values",
+        "description": "Fields for an \"in\" query"
+      }
+    ],
+    "return": {
+      "nullable": null,
+      "types": [
+        "string"
+      ],
+      "spread": false,
+      "description": "A query string to be passed to the performed query"
+    },
+    "generator": false
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "create",
+    "memberof": "src/databases/BaseDBConnection.js~BaseDBConnection",
+    "longname": "src/databases/BaseDBConnection.js~BaseDBConnection#create",
+    "access": null,
+    "description": null,
+    "lineNumber": 140,
+    "undocument": true,
+    "params": [
+      {
+        "name": "args",
+        "optional": true,
+        "types": [
+          "{}"
+        ],
+        "defaultRaw": {},
+        "defaultValue": "{}"
+      }
+    ],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "delete",
+    "memberof": "src/databases/BaseDBConnection.js~BaseDBConnection",
+    "longname": "src/databases/BaseDBConnection.js~BaseDBConnection#delete",
+    "access": null,
+    "description": null,
+    "lineNumber": 159,
+    "undocument": true,
+    "params": [
+      {
+        "name": "args",
+        "optional": true,
+        "types": [
+          "{}"
+        ],
+        "defaultRaw": {},
+        "defaultValue": "{}"
+      }
+    ],
+    "return": {
+      "types": [
+        "string"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "update",
+    "memberof": "src/databases/BaseDBConnection.js~BaseDBConnection",
+    "longname": "src/databases/BaseDBConnection.js~BaseDBConnection#update",
+    "access": null,
+    "description": null,
+    "lineNumber": 162,
+    "undocument": true,
+    "params": [
+      {
+        "name": "args",
+        "optional": true,
+        "types": [
+          "{}"
+        ],
+        "defaultRaw": {},
+        "defaultValue": "{}"
+      }
+    ],
+    "return": {
+      "types": [
+        "string"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "$$queryInString",
+    "memberof": "src/databases/BaseDBConnection.js~BaseDBConnection",
+    "longname": "src/databases/BaseDBConnection.js~BaseDBConnection#$$queryInString",
+    "access": "private",
+    "description": "$$queryInString builds any \"in\" query statements in the query\narguments",
+    "lineNumber": 187,
+    "since": "0.2.2",
+    "unknown": [
+      {
+        "tagName": "@returns",
+        "tagValue": "{string} A query string to be passed to the performed query"
+      }
+    ],
+    "params": [
+      {
+        "nullable": null,
+        "types": [
+          "object"
+        ],
+        "spread": false,
+        "optional": false,
+        "name": "args",
+        "description": "Object representation of the arguments"
+      },
+      {
+        "nullable": null,
+        "types": [
+          "string"
+        ],
+        "spread": false,
+        "optional": false,
+        "name": "args.key",
+        "description": "Name and value/conditions of field to be parsed"
+      },
+      {
+        "nullable": null,
+        "types": [
+          "object|Array<>"
+        ],
+        "spread": false,
+        "optional": false,
+        "name": "args.values",
+        "description": "Fields for an \"in\" query"
+      },
+      {
+        "nullable": null,
+        "types": [
+          "string"
+        ],
+        "spread": false,
+        "optional": false,
+        "name": "key",
+        "description": "The name of the key to parse for \"in\" arguments"
+      }
+    ],
+    "return": {
+      "nullable": null,
+      "types": [
+        "string"
+      ],
+      "spread": false,
+      "description": "A query string to be passed to the performed query"
+    },
+    "generator": false
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "sync",
+    "memberof": "src/databases/BaseDBConnection.js~BaseDBConnection",
+    "longname": "src/databases/BaseDBConnection.js~BaseDBConnection#sync",
+    "access": null,
+    "description": null,
+    "lineNumber": 198,
+    "undocument": true,
+    "params": [],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "migrate",
+    "memberof": "src/databases/BaseDBConnection.js~BaseDBConnection",
+    "longname": "src/databases/BaseDBConnection.js~BaseDBConnection#migrate",
+    "access": null,
+    "description": null,
+    "lineNumber": 209,
+    "undocument": true,
+    "params": [],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "$$queryset",
+    "memberof": "src/databases/BaseDBConnection.js~BaseDBConnection",
+    "longname": "src/databases/BaseDBConnection.js~BaseDBConnection#$$queryset",
+    "access": null,
+    "description": null,
+    "lineNumber": 220,
+    "undocument": true,
+    "params": [
+      {
+        "name": "model",
+        "optional": true,
+        "types": [
+          "{}"
+        ],
+        "defaultRaw": {},
+        "defaultValue": "{}"
+      },
+      {
+        "name": "query",
+        "types": [
+          "*"
+        ]
+      },
+      {
+        "name": "rows",
+        "optional": true,
+        "types": [
+          "*[]"
+        ],
+        "defaultRaw": [],
+        "defaultValue": "[]"
+      },
+      {
+        "name": "errors",
+        "types": [
+          "*"
+        ]
+      }
+    ],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "$$name",
+    "memberof": "src/databases/BaseDBConnection.js~BaseDBConnection",
+    "longname": "src/databases/BaseDBConnection.js~BaseDBConnection#$$name",
+    "access": null,
+    "description": null,
+    "lineNumber": 353,
+    "undocument": true,
+    "params": [
+      {
+        "name": "modelName",
+        "types": [
+          "*"
+        ]
+      }
+    ],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "file",
+    "static": true,
+    "variation": null,
+    "name": "src/databases/FirebaseConnection.js",
+    "memberof": null,
+    "longname": "src/databases/FirebaseConnection.js",
+    "access": null,
+    "description": null,
+    "lineNumber": 7,
+    "content": "/**\n * @module FirebaseConnection.js\n * @author Joe Groseclose <@benderTheCrime>\n * @date 8/23/2015\n */\n\nclass FirebaseConnection {}\nexport default FirebaseConnection;\n\n// TODO security around this connection\n\n// Firebase is a little different\n    // The data is basically just kvps\n    // We need to create one big list per model\n"
+  },
+  {
+    "kind": "class",
+    "static": true,
+    "variation": null,
+    "name": "FirebaseConnection",
+    "memberof": "src/databases/FirebaseConnection.js",
+    "longname": "src/databases/FirebaseConnection.js~FirebaseConnection",
+    "access": null,
+    "export": true,
+    "importPath": "angie-orm/src/databases/FirebaseConnection.js",
+    "importStyle": "FirebaseConnection",
+    "description": null,
+    "lineNumber": 7,
+    "unknown": [
+      {
+        "tagName": "@module",
+        "tagValue": "FirebaseConnection.js"
+      },
+      {
+        "tagName": "@author",
+        "tagValue": "Joe Groseclose <@benderTheCrime>"
+      },
+      {
+        "tagName": "@date",
+        "tagValue": "8/23/2015"
+      }
+    ],
+    "interface": false
+  },
+  {
+    "kind": "file",
+    "static": true,
+    "variation": null,
+    "name": "src/databases/MongoDBConnection.js",
+    "memberof": null,
+    "longname": "src/databases/MongoDBConnection.js",
+    "access": null,
+    "description": null,
+    "lineNumber": 7,
+    "content": "/**\n * @module MongoDBConnection.js\n * @author Joe Groseclose <@benderTheCrime>\n * @date 8/23/2015\n */\n\nclass MongoDBConnection {}\nexport default MongoDBConnection;"
+  },
+  {
+    "kind": "class",
+    "static": true,
+    "variation": null,
+    "name": "MongoDBConnection",
+    "memberof": "src/databases/MongoDBConnection.js",
+    "longname": "src/databases/MongoDBConnection.js~MongoDBConnection",
+    "access": null,
+    "export": true,
+    "importPath": "angie-orm/src/databases/MongoDBConnection.js",
+    "importStyle": "MongoDBConnection",
+    "description": null,
+    "lineNumber": 7,
+    "unknown": [
+      {
+        "tagName": "@module",
+        "tagValue": "MongoDBConnection.js"
+      },
+      {
+        "tagName": "@author",
+        "tagValue": "Joe Groseclose <@benderTheCrime>"
+      },
+      {
+        "tagName": "@date",
+        "tagValue": "8/23/2015"
+      }
+    ],
+    "interface": false
+  },
+  {
+    "kind": "file",
+    "static": true,
+    "variation": null,
+    "name": "src/databases/MySqlConnection.js",
+    "memberof": null,
+    "longname": "src/databases/MySqlConnection.js",
+    "access": null,
+    "description": null,
+    "lineNumber": 8,
+    "content": "/**\n * @module MySqlConnection.js\n * @author Joe Groseclose <@benderTheCrime>\n * @date 8/23/2015\n */\n\n// System Modules\nimport mysql from                       'mysql';\nimport {cyan, magenta, gray} from       'chalk';\nimport $LogProvider from                'angie-log';\n\n// Angie Modules\nimport BaseDBConnection from           './BaseDBConnection';\nimport {\n    $$InvalidDatabaseConfigError\n} from                                  '../util/$ExceptionsProvider';\n\nconst p = process,\n      DEFAULT_HOST = '127.0.0.1',\n      DEFAULT_PORT = 3306;\n$LogProvider.mysqlInfo = $LogProvider.info.bind(null, 'MySQL');\n\nclass MySqlConnection extends BaseDBConnection {\n    constructor(name, database, destructive, dryRun) {\n        super(database, destructive, dryRun);\n        let db = this.database;\n\n        if (!db.username) {\n            throw new $$InvalidDatabaseConfigError(db);\n        } else if (!this.connection) {\n            this.name = name || this.database.name || this.database.alias;\n            this.connection = mysql.createConnection({\n                host: db.host || DEFAULT_HOST,\n                port: db.port || DEFAULT_PORT,\n                user: db.username || '',\n                password: db.password || '',\n                database: this.name\n            });\n\n            this.connection.on('error', function() {\n                if (db.options && db.options.hardErrors) {\n                    throw new $$InvalidDatabaseConfigError(db);\n                }\n            });\n\n            this.connected = false;\n        }\n    }\n    types(model, key) {\n        const field = model[ key ];\n        let type = field.type,\n            maxLength = '';\n        if (!type) {\n            return;\n        }\n        if (field.maxLength) {\n            maxLength = `(${field.maxLength})`;\n        }\n        switch (type) {\n            case 'CharField':\n                return `VARCHAR${maxLength}`;\n\n            // TODO support different size integers: TINY, SMALL, MEDIUM\n            case 'IntegerField':\n                return `INTEGER${maxLength}`;\n            case 'KeyField':\n                return `INTEGER${maxLength}`;\n            case 'ForeignKeyField':\n                return `INTEGER${maxLength}, ADD CONSTRAINT fk_${key} FOREIGN KEY(${key}) ` +\n                    `REFERENCES ${field.rel}(id) ON DELETE CASCADE`;\n            default:\n                return undefined;\n        }\n    }\n    connect() {\n        let me = this;\n        return new Promise(function(resolve) {\n            if (me.connected === false) {\n                me.connection.connect(function(e) {\n\n                    // TODO add this back in?\n                    if (e) {\n                        // throw new $$DatabaseConnectivityError(me.database);\n                        $LogProvider.error(e);\n                    } else {\n                        me.connected = true;\n                        $LogProvider.mysqlInfo('Connection successful');\n                    }\n                });\n            }\n            resolve();\n        });\n    }\n    disconnect() {\n        this.connection.end();\n        this.connected = false;\n    }\n    run(query, model) {\n        let me = this,\n            name = this.name;\n        return this.connect().then(function() {\n            return new Promise(function(resolve) {\n                $LogProvider.mysqlInfo(\n                    `Query: ${cyan(name)}: ${magenta(query)}`\n                );\n                return me.connection.query(query, function(e, rows = []) {\n                    if (e) {\n                        $LogProvider.warn(e);\n                    }\n                    resolve([ rows, e ]);\n                });\n            });\n        }).then(function(args) {\n            return me.$$queryset(model, query, args[0], args[1]);\n        });\n    }\n    all() {\n        const query = super.all.apply(this, arguments);\n        return this.run(query, arguments[0].model);\n    }\n    create() {\n        const query = super.create.apply(this, arguments);\n        return this.run(query, arguments[0].model);\n    }\n    delete() {\n        const query = super.delete.apply(this, arguments);\n        return this.run(query, arguments[0].model);\n    }\n    update() {\n        const query = super.update.apply(this, arguments);\n        return this.run(query, arguments[0].model);\n    }\n    raw(query, model) {\n        return this.run(query, model);\n    }\n    sync() {\n        let me = this;\n\n        // Don't worry about the error state, handled by connection\n        return super.sync().then(function() {\n            let models = me.models(),\n                proms = [];\n\n            for (let model in models) {\n\n                // Fetch models and get model name\n                let instance = models[ model ],\n                    modelName = instance.name || instance.alias ||\n                        me.$$name(model);\n\n                // Run a table creation with an ID for each table\n                proms.push(me.run(\n                    `CREATE TABLE \\`${modelName}\\` ` +\n                    '(`id` int(11) NOT NULL AUTO_INCREMENT, ' +\n                    'PRIMARY KEY (`id`) ' +\n                    ') ENGINE=InnoDB DEFAULT CHARSET=latin1;'\n                ));\n            }\n            return Promise.all(proms).then(function() {\n                return me.migrate();\n            });\n        });\n    }\n    migrate() {\n        let me = this;\n        return super.migrate().then(function() {\n            return me.run('SHOW TABLES').then((queryset) => queryset);\n        }).then(function(queryset) {\n            // const modelMap = [\n            //     for (model of queryset) model[ `Tables_in_${me.name}` ]\n            // ];\n            const modelMap = queryset.map((v) => v[ `Tables_in_${me.name}` ]);\n            let models = me.models(),\n                proms = [];\n            for (let key of modelMap) {\n                let prom;\n                if (!models.hasOwnProperty(key)) {\n\n                    // Don't consolidate, we don't want to look at the fields\n                    if (me.destructive) {\n                        prom = me.run(`DROP TABLE \\`${key}\\`;`);\n                    }\n                } else {\n                    const model = models[ key ],\n                          modelName = me.$$name(model.name || model.alias),\n                          fields = model.$fields();\n                    prom = me.run(\n                        `SHOW COLUMNS from \\`${modelName}\\`;`,\n                        modelName\n                    ).then(function(queryset) {\n                        let proms = [];\n                        queryset.forEach(function(v) {\n                            if (\n                                fields.indexOf(v.Field) === -1 &&\n                                v.Field !== 'id' &&\n                                me.destructive\n                            ) {\n                                let baseQuery = `ALTER TABLE \\`${modelName}\\` `,\n                                    query =\n                                        `${baseQuery}DROP COLUMN \\`${v.Field}\\`;`,\n                                    keyQuery;\n                                if (v.Key) {\n                                    keyQuery =\n                                        `${baseQuery}DROP FOREIGN KEY ` +\n                                        `\\`fk_${v.Field}\\`;`;\n                                }\n                                if (!me.dryRun) {\n                                    let prom;\n                                    if (keyQuery) {\n                                        prom = me.run(keyQuery).then(\n                                            () => me.run(query)\n                                        );\n                                    } else {\n                                        prom = me.run(query);\n                                    }\n                                    proms.push(prom);\n                                } else {\n                                    $LogProvider.mysqlInfo(\n                                        `Dry Run Query: ${gray(`${keyQuery} ${query}`)}`\n                                    );\n                                }\n                            }\n                        });\n\n                        // TODO you've got to return if many to many here\n                        fields.forEach(function(v) {\n                            if (model[ v ].type === 'ManyToManyField') {\n                                return;\n                            }\n                            if (queryset.map(($v) => $v.Field).indexOf(v) === -1) {\n                                let query,\n                                    $default;\n                                if (model[ v ].default) {\n                                    $default = model[ v ].default;\n                                    if (typeof $default === 'function') {\n                                        $default = $default();\n                                    }\n                                }\n                                query =\n                                    `ALTER TABLE \\`${modelName}\\` ADD COLUMN \\`${v}\\` ` +\n                                    `${me.types(model, v)}` +\n                                    `${model[ v ].nullable ? '' : ' NOT NULL'}` +\n                                    `${model[ v ].unique ? ' UNIQUE' : ''}` +\n                                    `${$default ? ` DEFAULT '${$default}'` : ''};`;\n                                if (!me.dryRun) {\n                                    proms.push(me.run(query));\n                                } else {\n                                    $LogProvider.mysqlInfo(\n                                        `Dry Run Query: ${gray(query)}`\n                                    );\n                                }\n                            }\n                        });\n                        return Promise.all(proms);\n                    });\n                }\n                proms.push(prom);\n            }\n            return Promise.all(proms);\n        }).then(function() {\n            me.disconnect();\n            $LogProvider.mysqlInfo(\n                `Successfully Synced & Migrated ${cyan(me.name)}`\n            );\n            p.exit(0);\n        });\n    }\n}\n\nexport default MySqlConnection;"
+  },
+  {
+    "kind": "variable",
+    "static": true,
+    "variation": null,
+    "name": "p",
+    "memberof": "src/databases/MySqlConnection.js",
+    "longname": "src/databases/MySqlConnection.js~p",
+    "access": null,
+    "export": false,
+    "importPath": "angie-orm/src/databases/MySqlConnection.js",
+    "importStyle": null,
+    "description": null,
+    "lineNumber": 18,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "kind": "class",
+    "static": true,
+    "variation": null,
+    "name": "MySqlConnection",
+    "memberof": "src/databases/MySqlConnection.js",
+    "longname": "src/databases/MySqlConnection.js~MySqlConnection",
+    "access": null,
+    "export": true,
+    "importPath": "angie-orm/src/databases/MySqlConnection.js",
+    "importStyle": "MySqlConnection",
+    "description": null,
+    "lineNumber": 23,
+    "undocument": true,
+    "interface": false,
+    "extends": [
+      "src/databases/BaseDBConnection~BaseDBConnection"
+    ]
+  },
+  {
+    "kind": "constructor",
+    "static": false,
+    "variation": null,
+    "name": "constructor",
+    "memberof": "src/databases/MySqlConnection.js~MySqlConnection",
+    "longname": "src/databases/MySqlConnection.js~MySqlConnection#constructor",
+    "access": null,
+    "description": null,
+    "lineNumber": 24,
+    "undocument": true,
+    "params": [
+      {
+        "name": "name",
+        "types": [
+          "*"
+        ]
+      },
+      {
+        "name": "database",
+        "types": [
+          "*"
+        ]
+      },
+      {
+        "name": "destructive",
+        "types": [
+          "*"
+        ]
+      },
+      {
+        "name": "dryRun",
+        "types": [
+          "*"
+        ]
+      }
+    ],
+    "generator": false
+  },
+  {
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "name",
+    "memberof": "src/databases/MySqlConnection.js~MySqlConnection",
+    "longname": "src/databases/MySqlConnection.js~MySqlConnection#name",
+    "access": null,
+    "description": null,
+    "lineNumber": 31,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "connection",
+    "memberof": "src/databases/MySqlConnection.js~MySqlConnection",
+    "longname": "src/databases/MySqlConnection.js~MySqlConnection#connection",
+    "access": null,
+    "description": null,
+    "lineNumber": 32,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "connected",
+    "memberof": "src/databases/MySqlConnection.js~MySqlConnection",
+    "longname": "src/databases/MySqlConnection.js~MySqlConnection#connected",
+    "access": null,
+    "description": null,
+    "lineNumber": 46,
+    "undocument": true,
+    "type": {
+      "types": [
+        "boolean"
+      ]
+    }
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "types",
+    "memberof": "src/databases/MySqlConnection.js~MySqlConnection",
+    "longname": "src/databases/MySqlConnection.js~MySqlConnection#types",
+    "access": null,
+    "description": null,
+    "lineNumber": 49,
+    "undocument": true,
+    "params": [
+      {
+        "name": "model",
+        "types": [
+          "*"
+        ]
+      },
+      {
+        "name": "key",
+        "types": [
+          "*"
+        ]
+      }
+    ],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "connect",
+    "memberof": "src/databases/MySqlConnection.js~MySqlConnection",
+    "longname": "src/databases/MySqlConnection.js~MySqlConnection#connect",
+    "access": null,
+    "description": null,
+    "lineNumber": 75,
+    "undocument": true,
+    "params": [],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "disconnect",
+    "memberof": "src/databases/MySqlConnection.js~MySqlConnection",
+    "longname": "src/databases/MySqlConnection.js~MySqlConnection#disconnect",
+    "access": null,
+    "description": null,
+    "lineNumber": 94,
+    "undocument": true,
+    "params": [],
+    "generator": false
+  },
+  {
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "connected",
+    "memberof": "src/databases/MySqlConnection.js~MySqlConnection",
+    "longname": "src/databases/MySqlConnection.js~MySqlConnection#connected",
+    "access": null,
+    "description": null,
+    "lineNumber": 96,
+    "undocument": true,
+    "type": {
+      "types": [
+        "boolean"
+      ]
+    }
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "run",
+    "memberof": "src/databases/MySqlConnection.js~MySqlConnection",
+    "longname": "src/databases/MySqlConnection.js~MySqlConnection#run",
+    "access": null,
+    "description": null,
+    "lineNumber": 98,
+    "undocument": true,
+    "params": [
+      {
+        "name": "query",
+        "types": [
+          "*"
+        ]
+      },
+      {
+        "name": "model",
+        "types": [
+          "*"
+        ]
+      }
+    ],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "all",
+    "memberof": "src/databases/MySqlConnection.js~MySqlConnection",
+    "longname": "src/databases/MySqlConnection.js~MySqlConnection#all",
+    "access": null,
+    "description": null,
+    "lineNumber": 117,
+    "undocument": true,
+    "params": [],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "create",
+    "memberof": "src/databases/MySqlConnection.js~MySqlConnection",
+    "longname": "src/databases/MySqlConnection.js~MySqlConnection#create",
+    "access": null,
+    "description": null,
+    "lineNumber": 121,
+    "undocument": true,
+    "params": [],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "delete",
+    "memberof": "src/databases/MySqlConnection.js~MySqlConnection",
+    "longname": "src/databases/MySqlConnection.js~MySqlConnection#delete",
+    "access": null,
+    "description": null,
+    "lineNumber": 125,
+    "undocument": true,
+    "params": [],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "update",
+    "memberof": "src/databases/MySqlConnection.js~MySqlConnection",
+    "longname": "src/databases/MySqlConnection.js~MySqlConnection#update",
+    "access": null,
+    "description": null,
+    "lineNumber": 129,
+    "undocument": true,
+    "params": [],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "raw",
+    "memberof": "src/databases/MySqlConnection.js~MySqlConnection",
+    "longname": "src/databases/MySqlConnection.js~MySqlConnection#raw",
+    "access": null,
+    "description": null,
+    "lineNumber": 133,
+    "undocument": true,
+    "params": [
+      {
+        "name": "query",
+        "types": [
+          "*"
+        ]
+      },
+      {
+        "name": "model",
+        "types": [
+          "*"
+        ]
+      }
+    ],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "sync",
+    "memberof": "src/databases/MySqlConnection.js~MySqlConnection",
+    "longname": "src/databases/MySqlConnection.js~MySqlConnection#sync",
+    "access": null,
+    "description": null,
+    "lineNumber": 136,
+    "undocument": true,
+    "params": [],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "migrate",
+    "memberof": "src/databases/MySqlConnection.js~MySqlConnection",
+    "longname": "src/databases/MySqlConnection.js~MySqlConnection#migrate",
+    "access": null,
+    "description": null,
+    "lineNumber": 164,
+    "undocument": true,
+    "params": [],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "file",
+    "static": true,
+    "variation": null,
+    "name": "src/databases/SqliteConnection.js",
+    "memberof": null,
+    "longname": "src/databases/SqliteConnection.js",
+    "access": null,
+    "description": null,
+    "lineNumber": 8,
+    "content": "/**\n * @module SqliteConnection.js\n * @author Joe Groseclose <@benderTheCrime>\n * @date 8/23/2015\n */\n\n// System Modules\nimport fs from                          'fs';\nimport sqlite3 from                     'sqlite3';\nimport {cyan, magenta, gray} from       'chalk';\nimport $LogProvider from                'angie-log';\n\n// Angie Modules\nimport BaseDBConnection, {\n    $$DatabaseConnectivityError\n} from                                  './BaseDBConnection';\nimport {\n    $$InvalidDatabaseConfigError\n} from                                  '../util/$ExceptionsProvider';\n\nsqlite3.verbose();\n\nconst p = process;\n$LogProvider.sqliteInfo = $LogProvider.info.bind(null, 'Sqlite');\n\nclass SqliteConnection extends BaseDBConnection {\n    constructor(database, destructive, dryRun) {\n        super(database, destructive, dryRun);\n\n        let db = this.database;\n        if (!db.name) {\n            throw new $$InvalidDatabaseConfigError();\n        }\n        this.name = this.database.name || this.database.alias;\n    }\n    types(field) {\n        let type = field.type;\n        if (!type) {\n            return;\n        }\n        switch (type) {\n            case 'CharField':\n                return `TEXT${field.nullable ? ' NOT NULL' : ''}`;\n\n            // TODO support different size integers: TINY, SMALL, MEDIUM\n            case 'IntegerField':\n                return `INTEGER${field.nullable ? ' NOT NULL' : ''}`;\n            case 'KeyField':\n                return `INTEGER${field.nullable ? ' NOT NULL' : ''}`;\n            case 'ForeignKeyField':\n                return `INTEGER REFERENCES ${field.rel}(id)`;\n            default:\n                return undefined;\n        }\n    }\n    connect() {\n        let db = this.database;\n        if (!this.connection) {\n            try {\n                this.connection = new sqlite3.Database(this.name);\n                $LogProvider.sqliteInfo('Connection successful');\n            } catch(err) {\n                throw new $$DatabaseConnectivityError(db);\n            }\n        }\n        return this.connection;\n    }\n    disconnect() {\n        this.connect().close();\n        return this;\n    }\n    query(query, model, key) {\n        let me = this,\n            name = this.name;\n        return new Promise(function(resolve) {\n            $LogProvider.sqliteInfo(`Query: ${cyan(name)}: ${magenta(query)}`);\n            me.connect().parallelize(function() {\n                me.connection[ key ](query, function(e, rows = []) {\n                    if (e) {\n                        $LogProvider.warn(e);\n                    }\n                    resolve([ rows, e ]);\n                });\n            });\n        }).then(function(args) {\n            return me.$$queryset(model, query, args[0], args[1]);\n        });\n    }\n    run(query, model) {\n        return this.query(query, model, 'run');\n    }\n    all() {\n        const query = super.all.apply(this, arguments);\n        return this.query(query, arguments[0].model, 'all');\n    }\n    create() {\n        const query = super.create.apply(this, arguments);\n        return this.query(query, arguments[0].model, 'all');\n    }\n    delete() {\n        const query = super.delete.apply(this, arguments);\n        return this.query(query, arguments[0].model,  'all');\n    }\n    update() {\n        const query = super.update.apply(this, arguments);\n        return this.query(query, arguments[0].model,  'all');\n    }\n    raw(query, model) {\n        return this.query(query, model, 'all');\n    }\n    sync() {\n        let me = this;\n        super.sync().then(function() {\n            let proms = [];\n\n            // TODO test this in another directory\n            if (!fs.existsSync(me.name)) {\n\n                // Connection does not exist and we must touch the db file\n                fs.closeSync(fs.openSync(me.name, 'w'));\n            }\n\n            let models = me.models();\n            for (let model in models) {\n\n                // Fetch models and get model name\n                let instance = models[ model ],\n                    modelName = instance.name || instance.alias ||\n                        me.$$name(instance);\n\n                // Run a table creation with an ID for each table\n                proms.push(me.run(\n                    `CREATE TABLE ${modelName} ` +\n                    '(id INTEGER PRIMARY KEY AUTOINCREMENT);',\n                    modelName\n                ));\n            }\n            return Promise.all(proms).then(function() {\n                return me.migrate();\n            });\n        });\n    }\n    migrate() {\n        let me = this;\n        return super.migrate().then(function() {\n            let models = me.models(),\n                proms = [],\n                logged = true;\n\n            for (let key in models) {\n                const model = models[ key ],\n                      modelName = me.$$name(model.name || model.alias),\n                      fields = model.$fields();\n                if (me.destructive && logged) {\n\n                    // TODO recommmend that the user copy the table over\n                    // without the column, delete the original, and\n                    // rename the table\n                    $LogProvider.error(\n                        'You have specified a destructive Migration and ' +\n                        `have fields in the ${cyan(modelName)} model ` +\n                        'which do not exist in your app.Model code. ' +\n                        'However, sqlite3 destructive migrations are not ' +\n                        'supported. Please see the docs for more info.'\n                    );\n                    logged = false;\n                }\n\n                fields.forEach(function(v) {\n                    if (model[ v ].type === 'ManyToManyField') {\n                        return;\n                    }\n\n                    let query,\n                        $default;\n                    if (model[ v ].default) {\n                        $default = model[ v ].default;\n                        if (typeof $default === 'function') {\n                            $default = $default();\n                        }\n                    }\n                    query =\n                        `ALTER TABLE ${modelName} ADD COLUMN ${v} ` +\n                        `${me.types(model[ v ])}` +\n                        `${model[ v ].unique ? ' UNIQUE' : ''}` +\n                        `${$default ? ` DEFAULT '${$default}'` : ''};`;\n                    if (!me.dryRun) {\n                        proms.push(me.run(query));\n                    } else {\n                        $LogProvider.sqliteInfo(`Dry Run Query: ${gray(query)}`);\n                    }\n                });\n            }\n            return Promise.all(proms);\n        }).then(function() {\n            me.disconnect();\n            $LogProvider.sqliteInfo(\n                `Successfully Synced & Migrated ${cyan(me.name)}`\n            );\n            p.exit(0);\n        });\n    }\n}\n\nexport default SqliteConnection;"
+  },
+  {
+    "kind": "variable",
+    "static": true,
+    "variation": null,
+    "name": "p",
+    "memberof": "src/databases/SqliteConnection.js",
+    "longname": "src/databases/SqliteConnection.js~p",
+    "access": null,
+    "export": false,
+    "importPath": "angie-orm/src/databases/SqliteConnection.js",
+    "importStyle": null,
+    "description": null,
+    "lineNumber": 23,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "kind": "class",
+    "static": true,
+    "variation": null,
+    "name": "SqliteConnection",
+    "memberof": "src/databases/SqliteConnection.js",
+    "longname": "src/databases/SqliteConnection.js~SqliteConnection",
+    "access": null,
+    "export": true,
+    "importPath": "angie-orm/src/databases/SqliteConnection.js",
+    "importStyle": "SqliteConnection",
+    "description": null,
+    "lineNumber": 26,
+    "undocument": true,
+    "interface": false,
+    "extends": [
+      "src/databases/BaseDBConnection~BaseDBConnection"
+    ]
+  },
+  {
+    "kind": "constructor",
+    "static": false,
+    "variation": null,
+    "name": "constructor",
+    "memberof": "src/databases/SqliteConnection.js~SqliteConnection",
+    "longname": "src/databases/SqliteConnection.js~SqliteConnection#constructor",
+    "access": null,
+    "description": null,
+    "lineNumber": 27,
+    "undocument": true,
+    "params": [
+      {
+        "name": "database",
+        "types": [
+          "*"
+        ]
+      },
+      {
+        "name": "destructive",
+        "types": [
+          "*"
+        ]
+      },
+      {
+        "name": "dryRun",
+        "types": [
+          "*"
+        ]
+      }
+    ],
+    "generator": false
+  },
+  {
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "name",
+    "memberof": "src/databases/SqliteConnection.js~SqliteConnection",
+    "longname": "src/databases/SqliteConnection.js~SqliteConnection#name",
+    "access": null,
+    "description": null,
+    "lineNumber": 34,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "types",
+    "memberof": "src/databases/SqliteConnection.js~SqliteConnection",
+    "longname": "src/databases/SqliteConnection.js~SqliteConnection#types",
+    "access": null,
+    "description": null,
+    "lineNumber": 36,
+    "undocument": true,
+    "params": [
+      {
+        "name": "field",
+        "types": [
+          "*"
+        ]
+      }
+    ],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "connect",
+    "memberof": "src/databases/SqliteConnection.js~SqliteConnection",
+    "longname": "src/databases/SqliteConnection.js~SqliteConnection#connect",
+    "access": null,
+    "description": null,
+    "lineNumber": 56,
+    "undocument": true,
+    "params": [],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "connection",
+    "memberof": "src/databases/SqliteConnection.js~SqliteConnection",
+    "longname": "src/databases/SqliteConnection.js~SqliteConnection#connection",
+    "access": null,
+    "description": null,
+    "lineNumber": 60,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "disconnect",
+    "memberof": "src/databases/SqliteConnection.js~SqliteConnection",
+    "longname": "src/databases/SqliteConnection.js~SqliteConnection#disconnect",
+    "access": null,
+    "description": null,
+    "lineNumber": 68,
+    "undocument": true,
+    "params": [],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "query",
+    "memberof": "src/databases/SqliteConnection.js~SqliteConnection",
+    "longname": "src/databases/SqliteConnection.js~SqliteConnection#query",
+    "access": null,
+    "description": null,
+    "lineNumber": 72,
+    "undocument": true,
+    "params": [
+      {
+        "name": "query",
+        "types": [
+          "*"
+        ]
+      },
+      {
+        "name": "model",
+        "types": [
+          "*"
+        ]
+      },
+      {
+        "name": "key",
+        "types": [
+          "*"
+        ]
+      }
+    ],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "run",
+    "memberof": "src/databases/SqliteConnection.js~SqliteConnection",
+    "longname": "src/databases/SqliteConnection.js~SqliteConnection#run",
+    "access": null,
+    "description": null,
+    "lineNumber": 89,
+    "undocument": true,
+    "params": [
+      {
+        "name": "query",
+        "types": [
+          "*"
+        ]
+      },
+      {
+        "name": "model",
+        "types": [
+          "*"
+        ]
+      }
+    ],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "all",
+    "memberof": "src/databases/SqliteConnection.js~SqliteConnection",
+    "longname": "src/databases/SqliteConnection.js~SqliteConnection#all",
+    "access": null,
+    "description": null,
+    "lineNumber": 92,
+    "undocument": true,
+    "params": [],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "create",
+    "memberof": "src/databases/SqliteConnection.js~SqliteConnection",
+    "longname": "src/databases/SqliteConnection.js~SqliteConnection#create",
+    "access": null,
+    "description": null,
+    "lineNumber": 96,
+    "undocument": true,
+    "params": [],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "delete",
+    "memberof": "src/databases/SqliteConnection.js~SqliteConnection",
+    "longname": "src/databases/SqliteConnection.js~SqliteConnection#delete",
+    "access": null,
+    "description": null,
+    "lineNumber": 100,
+    "undocument": true,
+    "params": [],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "update",
+    "memberof": "src/databases/SqliteConnection.js~SqliteConnection",
+    "longname": "src/databases/SqliteConnection.js~SqliteConnection#update",
+    "access": null,
+    "description": null,
+    "lineNumber": 104,
+    "undocument": true,
+    "params": [],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "raw",
+    "memberof": "src/databases/SqliteConnection.js~SqliteConnection",
+    "longname": "src/databases/SqliteConnection.js~SqliteConnection#raw",
+    "access": null,
+    "description": null,
+    "lineNumber": 108,
+    "undocument": true,
+    "params": [
+      {
+        "name": "query",
+        "types": [
+          "*"
+        ]
+      },
+      {
+        "name": "model",
+        "types": [
+          "*"
+        ]
+      }
+    ],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "sync",
+    "memberof": "src/databases/SqliteConnection.js~SqliteConnection",
+    "longname": "src/databases/SqliteConnection.js~SqliteConnection#sync",
+    "access": null,
+    "description": null,
+    "lineNumber": 111,
+    "undocument": true,
+    "params": [],
+    "generator": false
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "migrate",
+    "memberof": "src/databases/SqliteConnection.js~SqliteConnection",
+    "longname": "src/databases/SqliteConnection.js~SqliteConnection#migrate",
+    "access": null,
+    "description": null,
+    "lineNumber": 143,
+    "undocument": true,
+    "params": [],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "file",
+    "static": true,
+    "variation": null,
+    "name": "src/index.js",
+    "memberof": null,
+    "longname": "src/index.js",
+    "access": null,
+    "description": null,
+    "lineNumber": 8,
+    "content": "/**\n * @module index.js\n * @author Joe Groseclose <@benderTheCrime>\n * @date 8/23/2015\n */\n\n// System Modules\nimport {exec} from                  'child_process';\nimport {gray} from                  'chalk';\nimport $LogProvider from            'angie-log';\n\n// Angie ORM Global Modules\nimport './Angie';\n\n// Angie ORM Modules\nimport AngieDatabaseRouter from     './databases/AngieDatabaseRouter';\nimport * as $$FieldProvider from    './models/$Fields';\n\nconst p = process;\nlet args = [];\n\n// Remove trivial arguments\np.argv.forEach(function(v) {\n    if (!v.match(/(node|iojs|index|help|angie(\\-orm)?)/)) {\n        args.push(v);\n    } else if (v === 'help') {\n        help();\n    }\n});\n\n// Route the CLI request to a specific command if running from CLI\nif (\n    args.length &&\n    args.some((v) => [ 'syncdb', 'migrate', 'test' ].indexOf(v) > -1)\n) {\n    switch ((args[0] || '').toLowerCase()) {\n        case 'syncdb':\n            AngieDatabaseRouter(args).sync();\n            break;\n        case 'migrate':\n            AngieDatabaseRouter(args).migrate();\n            break;\n        default:\n            runTests();\n    }\n}\n\nfunction runTests() {\n\n    // TODO is there any way to carry the stream output from gulp instead\n    // of capturing stdout?\n    exec(`cd ${__dirname} && gulp`, function(e, std, err) {\n        $LogProvider.info(std);\n        if (err) {\n            $LogProvider.error(err);\n        }\n        if (e) {\n            throw new Error(e);\n        }\n    });\n}\n\nfunction help() {\n    $LogProvider.bold('Angie ORM');\n    console.log('A flexible, Promise-based ORM for the Angie MVC');\n    console.log('\\r');\n    $LogProvider.bold('Version:');\n    console.log(global.ANGIE_ORM_VERSION);\n    console.log('\\r');\n    $LogProvider.bold('Commands:');\n    console.log(\n        'syncdb [ database ]                                                   ' +\n        gray(\n            'Sync the current specified databases in the AngieFile. ' +\n            'Defaults to the default created database'\n        )\n    );\n    console.log(\n        'migrations [ --destructive -- optional ] [ --dryrun -- optional ]     ' +\n        gray(\n            'Checks to see if the database and the specified ' +\n            'models are out of sync. Generates NO files.'\n        )\n    );\n    console.log(\n        'test                                                                  ' +\n        gray(\n            'Runs the Angie test suite and prints the results in the ' +\n            'console'\n        )\n    );\n    p.exit(0);\n}\n\nexport {$$FieldProvider as $$Fields};"
+  },
+  {
+    "kind": "variable",
+    "static": true,
+    "variation": null,
+    "name": "p",
+    "memberof": "src/index.js",
+    "longname": "src/index.js~p",
+    "access": null,
+    "export": false,
+    "importPath": "angie-orm/src/index.js",
+    "importStyle": null,
+    "description": null,
+    "lineNumber": 19,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "kind": "variable",
+    "static": true,
+    "variation": null,
+    "name": "args",
+    "memberof": "src/index.js",
+    "longname": "src/index.js~args",
+    "access": null,
+    "export": false,
+    "importPath": "angie-orm/src/index.js",
+    "importStyle": null,
+    "description": null,
+    "lineNumber": 20,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "kind": "function",
+    "static": true,
+    "variation": null,
+    "name": "help",
+    "memberof": "src/index.js",
+    "longname": "src/index.js~help",
+    "access": null,
+    "export": false,
+    "importPath": "angie-orm/src/index.js",
+    "importStyle": null,
+    "description": null,
+    "lineNumber": 63,
+    "undocument": true,
+    "params": [],
+    "generator": false
+  },
+  {
+    "kind": "function",
+    "static": true,
+    "variation": null,
+    "name": "runTests",
+    "memberof": "src/index.js",
+    "longname": "src/index.js~runTests",
+    "access": null,
+    "export": true,
+    "importPath": "angie-orm/src/index.js",
+    "importStyle": "{runTests}",
+    "description": null,
+    "lineNumber": 48,
+    "undocument": true,
+    "params": [],
+    "generator": false
+  },
+  {
+    "kind": "file",
+    "static": true,
+    "variation": null,
+    "name": "src/models/$Fields.js",
+    "memberof": null,
+    "longname": "src/models/$Fields.js",
+    "access": null,
+    "description": null,
+    "lineNumber": 8,
+    "content": "/**\n * @module $Fields.js\n * @author Joe Groseclose <@benderTheCrime>\n * @date 8/23/2015\n */\n\n// System Modules\nimport util from                'util';\nimport {magenta, cyan} from     'chalk';\nimport $LogProvider from        'angie-log';\n\nconst p = process;\n\nclass BaseField {\n    constructor(\n        args = 0,\n        maxValue = undefined,\n        minLength = 0,\n        maxLength = undefined,\n        nullable = false,\n        unique = false,\n        $default = undefined\n    ) {\n        this.type = 'BaseField';\n        if (typeof args === 'object') {\n            util._extend(this, arguments[0]);\n        } else if (!isNaN(args)) {\n            if (args === 1) {\n                return;\n            }\n            [\n                this.minValue,\n                this.maxValue,\n                this.minLength,\n                this.maxLength,\n                this.nullable,\n                this.unique,\n                this.default\n            ] = [\n                args,\n                maxValue,\n                minLength,\n                maxLength,\n                nullable,\n                unique,\n                $default\n            ];\n        }\n    }\n    create() {\n\n        // TODO this method is not responsible for migrating a model, only\n        // creating a field in a record when the model is instantiated\n        if (this.default) {\n            if (this.validate(this.default)) {\n                this.value = typeof this.default === 'function' ? this.default() :\n                    this.default;\n            } else {\n                throw new $$InvalidFieldConfigError(\n                    this.type,\n                    'Invalid default value'\n                );\n            }\n        }\n    }\n    validate(value) {\n\n        // TODO is this necessary?\n        // value = value || this.value;\n        if (!value && !this.nullable) {\n            return false;\n        }\n        if (\n            typeof value === 'string' &&\n            (\n                (\n                    this.minLength &&\n                    value.length < this.minLength\n                ) ||\n                (\n                    this.maxLength &&\n                    value.length > this.maxLength\n                )\n            )\n        ) {\n            return false;\n        } else if (\n            (\n                this.minValue &&\n                value < this.minValue\n            ) ||\n            (\n                this.maxValue &&\n                value > this.maxValue\n            )\n        ) {\n            return false;\n        }\n        return true;\n    }\n}\n\nclass CharField extends BaseField {\n    constructor() {\n        super(...arguments);\n        this.type = 'CharField';\n    }\n    create() {\n        super.create();\n        if (!this.value) {\n            this.value = '';\n        }\n    }\n    validate(value) {\n        value = this.value || value;\n        if (typeof value !== 'string') {\n            return false;\n        }\n        return super.validate(value);\n    }\n}\n\nclass IntegerField extends BaseField {\n    constructor() {\n        super(...arguments);\n        this.type = 'IntegerField';\n    }\n}\n\nclass KeyField extends IntegerField {\n    constructor() {\n        super(1);\n        this.type = 'KeyField';\n        this.unique = false;\n        this.minValue = 1;\n        this.maxLength = 11;\n        this.nullable = false;\n    }\n}\n\nclass ForeignKeyField extends KeyField {\n    constructor(rel, args) {\n        super(args);\n\n        this.type = 'ForeignKeyField';\n\n        if (!rel || !global.app.Models[ rel ]) {\n            throw new $$InvalidFieldConfigError(\n                this.type,\n                `Invalid relative model ${rel ? `${cyan(rel)} ` : ''}` +\n                'in constrained field declaration'\n            );\n        }\n\n        this.nesting = this.deepNesting = false;\n        if (args && typeof args === 'object') {\n\n            if (args.hasOwnProperty('deepNesting')) {\n                this.nesting = this.deepNesting = true;\n            } else {\n                this.nesting = args.hasOwnProperty('nesting');\n            }\n        }\n        this.rel = rel;\n        this.type = 'ForeignKeyField';\n    }\n}\n\nclass ManyToManyField extends ForeignKeyField {\n    constructor(rel, args = {}) {\n        super(rel, args);\n\n        this.type = 'ManyToManyField';\n        this.unique = false;\n\n        this.name = args.alias || args.name;\n        if (!this.name) {\n            throw new $$InvalidFieldConfigError(\n                this.type,\n                `${cyan(`${this.type}s`)} require name to be included in ` +\n                'configuration and to be valid model'\n            );\n        }\n\n        // Setup a reference to the relationship model\n        this.crossReferenceTableId = args.tableName || `${this.name}_${this.rel}_id`;\n        if (!args.crossReferenceTable) {\n            global.app.Model(this.crossReferenceTableId, {\n                [ `${this.name}_id` ]: new KeyField(),\n                [ `${this.rel}_id` ]: new KeyField()\n            });\n            this.crossReferenceTable = global.app.Models[\n                this.crossReferenceTableId\n            ];\n        } else {\n            this.crossReferenceTableId = args.crossReferenceTableId;\n            this.crossReferenceTable = args.crossReferenceTable;\n        }\n    }\n}\n\nclass $$InvalidFieldConfigError extends TypeError {\n    constructor(type, error = '') {\n        $LogProvider.error(\n            `Invalid Field configuration for ${magenta(type)}` +\n            `${error ? `: ${error}` : ''}`\n        );\n        super();\n        p.exit(1);\n    }\n}\n\nexport {\n    CharField,\n    IntegerField,\n    ForeignKeyField,\n    ManyToManyField\n};\n"
+  },
+  {
+    "kind": "variable",
+    "static": true,
+    "variation": null,
+    "name": "p",
+    "memberof": "src/models/$Fields.js",
+    "longname": "src/models/$Fields.js~p",
+    "access": null,
+    "export": false,
+    "importPath": "angie-orm/src/models/$Fields.js",
+    "importStyle": null,
+    "description": null,
+    "lineNumber": 12,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "kind": "class",
+    "static": true,
+    "variation": null,
+    "name": "CharField",
+    "memberof": "src/models/$Fields.js",
+    "longname": "src/models/$Fields.js~CharField",
+    "access": null,
+    "export": false,
+    "importPath": "angie-orm/src/models/$Fields.js",
+    "importStyle": null,
+    "description": null,
+    "lineNumber": 103,
+    "undocument": true,
+    "interface": false,
+    "extends": [
+      "BaseField"
+    ]
+  },
+  {
+    "kind": "constructor",
+    "static": false,
+    "variation": null,
+    "name": "constructor",
+    "memberof": "src/models/$Fields.js~CharField",
+    "longname": "src/models/$Fields.js~CharField#constructor",
+    "access": null,
+    "description": null,
+    "lineNumber": 104,
+    "undocument": true,
+    "params": [],
+    "generator": false
+  },
+  {
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "type",
+    "memberof": "src/models/$Fields.js~CharField",
+    "longname": "src/models/$Fields.js~CharField#type",
+    "access": null,
+    "description": null,
+    "lineNumber": 106,
+    "undocument": true,
+    "type": {
+      "types": [
+        "string"
+      ]
+    }
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "create",
+    "memberof": "src/models/$Fields.js~CharField",
+    "longname": "src/models/$Fields.js~CharField#create",
+    "access": null,
+    "description": null,
+    "lineNumber": 108,
+    "undocument": true,
+    "params": [],
+    "generator": false
+  },
+  {
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "value",
+    "memberof": "src/models/$Fields.js~CharField",
+    "longname": "src/models/$Fields.js~CharField#value",
+    "access": null,
+    "description": null,
+    "lineNumber": 111,
+    "undocument": true,
+    "type": {
+      "types": [
+        "string"
+      ]
+    }
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "validate",
+    "memberof": "src/models/$Fields.js~CharField",
+    "longname": "src/models/$Fields.js~CharField#validate",
+    "access": null,
+    "description": null,
+    "lineNumber": 114,
+    "undocument": true,
+    "params": [
+      {
+        "name": "value",
+        "types": [
+          "*"
+        ]
+      }
+    ],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "class",
+    "static": true,
+    "variation": null,
+    "name": "IntegerField",
+    "memberof": "src/models/$Fields.js",
+    "longname": "src/models/$Fields.js~IntegerField",
+    "access": null,
+    "export": false,
+    "importPath": "angie-orm/src/models/$Fields.js",
+    "importStyle": null,
+    "description": null,
+    "lineNumber": 123,
+    "undocument": true,
+    "interface": false,
+    "extends": [
+      "BaseField"
+    ]
+  },
+  {
+    "kind": "constructor",
+    "static": false,
+    "variation": null,
+    "name": "constructor",
+    "memberof": "src/models/$Fields.js~IntegerField",
+    "longname": "src/models/$Fields.js~IntegerField#constructor",
+    "access": null,
+    "description": null,
+    "lineNumber": 124,
+    "undocument": true,
+    "params": [],
+    "generator": false
+  },
+  {
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "type",
+    "memberof": "src/models/$Fields.js~IntegerField",
+    "longname": "src/models/$Fields.js~IntegerField#type",
+    "access": null,
+    "description": null,
+    "lineNumber": 126,
+    "undocument": true,
+    "type": {
+      "types": [
+        "string"
+      ]
+    }
+  },
+  {
+    "kind": "class",
+    "static": true,
+    "variation": null,
+    "name": "KeyField",
+    "memberof": "src/models/$Fields.js",
+    "longname": "src/models/$Fields.js~KeyField",
+    "access": null,
+    "export": false,
+    "importPath": "angie-orm/src/models/$Fields.js",
+    "importStyle": null,
+    "description": null,
+    "lineNumber": 130,
+    "undocument": true,
+    "interface": false,
+    "extends": [
+      "IntegerField"
+    ]
+  },
+  {
+    "kind": "constructor",
+    "static": false,
+    "variation": null,
+    "name": "constructor",
+    "memberof": "src/models/$Fields.js~KeyField",
+    "longname": "src/models/$Fields.js~KeyField#constructor",
+    "access": null,
+    "description": null,
+    "lineNumber": 131,
+    "undocument": true,
+    "params": [],
+    "generator": false
+  },
+  {
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "type",
+    "memberof": "src/models/$Fields.js~KeyField",
+    "longname": "src/models/$Fields.js~KeyField#type",
+    "access": null,
+    "description": null,
+    "lineNumber": 133,
+    "undocument": true,
+    "type": {
+      "types": [
+        "string"
+      ]
+    }
+  },
+  {
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "unique",
+    "memberof": "src/models/$Fields.js~KeyField",
+    "longname": "src/models/$Fields.js~KeyField#unique",
+    "access": null,
+    "description": null,
+    "lineNumber": 134,
+    "undocument": true,
+    "type": {
+      "types": [
+        "boolean"
+      ]
+    }
+  },
+  {
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "minValue",
+    "memberof": "src/models/$Fields.js~KeyField",
+    "longname": "src/models/$Fields.js~KeyField#minValue",
+    "access": null,
+    "description": null,
+    "lineNumber": 135,
+    "undocument": true,
+    "type": {
+      "types": [
+        "number"
+      ]
+    }
+  },
+  {
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "maxLength",
+    "memberof": "src/models/$Fields.js~KeyField",
+    "longname": "src/models/$Fields.js~KeyField#maxLength",
+    "access": null,
+    "description": null,
+    "lineNumber": 136,
+    "undocument": true,
+    "type": {
+      "types": [
+        "number"
+      ]
+    }
+  },
+  {
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "nullable",
+    "memberof": "src/models/$Fields.js~KeyField",
+    "longname": "src/models/$Fields.js~KeyField#nullable",
+    "access": null,
+    "description": null,
+    "lineNumber": 137,
+    "undocument": true,
+    "type": {
+      "types": [
+        "boolean"
+      ]
+    }
+  },
+  {
+    "kind": "class",
+    "static": true,
+    "variation": null,
+    "name": "ForeignKeyField",
+    "memberof": "src/models/$Fields.js",
+    "longname": "src/models/$Fields.js~ForeignKeyField",
+    "access": null,
+    "export": false,
+    "importPath": "angie-orm/src/models/$Fields.js",
+    "importStyle": null,
+    "description": null,
+    "lineNumber": 141,
+    "undocument": true,
+    "interface": false,
+    "extends": [
+      "KeyField"
+    ]
+  },
+  {
+    "kind": "constructor",
+    "static": false,
+    "variation": null,
+    "name": "constructor",
+    "memberof": "src/models/$Fields.js~ForeignKeyField",
+    "longname": "src/models/$Fields.js~ForeignKeyField#constructor",
+    "access": null,
+    "description": null,
+    "lineNumber": 142,
+    "undocument": true,
+    "params": [
+      {
+        "name": "rel",
+        "types": [
+          "*"
+        ]
+      },
+      {
+        "name": "args",
+        "types": [
+          "*"
+        ]
+      }
+    ],
+    "generator": false
+  },
+  {
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "type",
+    "memberof": "src/models/$Fields.js~ForeignKeyField",
+    "longname": "src/models/$Fields.js~ForeignKeyField#type",
+    "access": null,
+    "description": null,
+    "lineNumber": 145,
+    "undocument": true,
+    "type": {
+      "types": [
+        "string"
+      ]
+    }
+  },
+  {
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "nesting",
+    "memberof": "src/models/$Fields.js~ForeignKeyField",
+    "longname": "src/models/$Fields.js~ForeignKeyField#nesting",
+    "access": null,
+    "description": null,
+    "lineNumber": 155,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "nesting",
+    "memberof": "src/models/$Fields.js~ForeignKeyField",
+    "longname": "src/models/$Fields.js~ForeignKeyField#nesting",
+    "access": null,
+    "description": null,
+    "lineNumber": 159,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "nesting",
+    "memberof": "src/models/$Fields.js~ForeignKeyField",
+    "longname": "src/models/$Fields.js~ForeignKeyField#nesting",
+    "access": null,
+    "description": null,
+    "lineNumber": 161,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "rel",
+    "memberof": "src/models/$Fields.js~ForeignKeyField",
+    "longname": "src/models/$Fields.js~ForeignKeyField#rel",
+    "access": null,
+    "description": null,
+    "lineNumber": 164,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "type",
+    "memberof": "src/models/$Fields.js~ForeignKeyField",
+    "longname": "src/models/$Fields.js~ForeignKeyField#type",
+    "access": null,
+    "description": null,
+    "lineNumber": 165,
+    "undocument": true,
+    "type": {
+      "types": [
+        "string"
+      ]
+    }
+  },
+  {
+    "kind": "class",
+    "static": true,
+    "variation": null,
+    "name": "ManyToManyField",
+    "memberof": "src/models/$Fields.js",
+    "longname": "src/models/$Fields.js~ManyToManyField",
+    "access": null,
+    "export": false,
+    "importPath": "angie-orm/src/models/$Fields.js",
+    "importStyle": null,
+    "description": null,
+    "lineNumber": 169,
+    "undocument": true,
+    "interface": false,
+    "extends": [
+      "ForeignKeyField"
+    ]
+  },
+  {
+    "kind": "constructor",
+    "static": false,
+    "variation": null,
+    "name": "constructor",
+    "memberof": "src/models/$Fields.js~ManyToManyField",
+    "longname": "src/models/$Fields.js~ManyToManyField#constructor",
+    "access": null,
+    "description": null,
+    "lineNumber": 170,
+    "undocument": true,
+    "params": [
+      {
+        "name": "rel",
+        "types": [
+          "*"
+        ]
+      },
+      {
+        "name": "args",
+        "optional": true,
+        "types": [
+          "{}"
+        ],
+        "defaultRaw": {},
+        "defaultValue": "{}"
+      }
+    ],
+    "generator": false
+  },
+  {
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "type",
+    "memberof": "src/models/$Fields.js~ManyToManyField",
+    "longname": "src/models/$Fields.js~ManyToManyField#type",
+    "access": null,
+    "description": null,
+    "lineNumber": 173,
+    "undocument": true,
+    "type": {
+      "types": [
+        "string"
+      ]
+    }
+  },
+  {
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "unique",
+    "memberof": "src/models/$Fields.js~ManyToManyField",
+    "longname": "src/models/$Fields.js~ManyToManyField#unique",
+    "access": null,
+    "description": null,
+    "lineNumber": 174,
+    "undocument": true,
+    "type": {
+      "types": [
+        "boolean"
+      ]
+    }
+  },
+  {
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "name",
+    "memberof": "src/models/$Fields.js~ManyToManyField",
+    "longname": "src/models/$Fields.js~ManyToManyField#name",
+    "access": null,
+    "description": null,
+    "lineNumber": 176,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "crossReferenceTableId",
+    "memberof": "src/models/$Fields.js~ManyToManyField",
+    "longname": "src/models/$Fields.js~ManyToManyField#crossReferenceTableId",
+    "access": null,
+    "description": null,
+    "lineNumber": 186,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "crossReferenceTable",
+    "memberof": "src/models/$Fields.js~ManyToManyField",
+    "longname": "src/models/$Fields.js~ManyToManyField#crossReferenceTable",
+    "access": null,
+    "description": null,
+    "lineNumber": 192,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "crossReferenceTableId",
+    "memberof": "src/models/$Fields.js~ManyToManyField",
+    "longname": "src/models/$Fields.js~ManyToManyField#crossReferenceTableId",
+    "access": null,
+    "description": null,
+    "lineNumber": 196,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "crossReferenceTable",
+    "memberof": "src/models/$Fields.js~ManyToManyField",
+    "longname": "src/models/$Fields.js~ManyToManyField#crossReferenceTable",
+    "access": null,
+    "description": null,
+    "lineNumber": 197,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "kind": "class",
+    "static": true,
+    "variation": null,
+    "name": "$$InvalidFieldConfigError",
+    "memberof": "src/models/$Fields.js",
+    "longname": "src/models/$Fields.js~$$InvalidFieldConfigError",
+    "access": null,
+    "export": false,
+    "importPath": "angie-orm/src/models/$Fields.js",
+    "importStyle": null,
+    "description": null,
+    "lineNumber": 202,
+    "undocument": true,
+    "interface": false,
+    "extends": [
+      "TypeError"
+    ]
+  },
+  {
+    "kind": "constructor",
+    "static": false,
+    "variation": null,
+    "name": "constructor",
+    "memberof": "src/models/$Fields.js~$$InvalidFieldConfigError",
+    "longname": "src/models/$Fields.js~$$InvalidFieldConfigError#constructor",
+    "access": null,
+    "description": null,
+    "lineNumber": 203,
+    "undocument": true,
+    "params": [
+      {
+        "name": "type",
+        "types": [
+          "*"
+        ]
+      },
+      {
+        "name": "error",
+        "optional": true,
+        "types": [
+          "string"
+        ],
+        "defaultRaw": "",
+        "defaultValue": ""
+      }
+    ],
+    "generator": false
+  },
+  {
+    "kind": "class",
+    "static": true,
+    "variation": null,
+    "name": "BaseField",
+    "memberof": "src/models/$Fields.js",
+    "longname": "src/models/$Fields.js~BaseField",
+    "access": null,
+    "export": true,
+    "importPath": "angie-orm/src/models/$Fields.js",
+    "importStyle": "{BaseField}",
+    "description": null,
+    "lineNumber": 14,
+    "undocument": true,
+    "interface": false
+  },
+  {
+    "kind": "constructor",
+    "static": false,
+    "variation": null,
+    "name": "constructor",
+    "memberof": "src/models/$Fields.js~BaseField",
+    "longname": "src/models/$Fields.js~BaseField#constructor",
+    "access": null,
+    "description": null,
+    "lineNumber": 15,
+    "undocument": true,
+    "params": [
+      {
+        "name": "args",
+        "optional": true,
+        "types": [
+          "number"
+        ],
+        "defaultRaw": 0,
+        "defaultValue": "0"
+      },
+      {
+        "name": "maxValue",
+        "optional": true,
+        "types": [
+          "*"
+        ],
+        "defaultRaw": "undefined",
+        "defaultValue": "undefined"
+      },
+      {
+        "name": "minLength",
+        "optional": true,
+        "types": [
+          "number"
+        ],
+        "defaultRaw": 0,
+        "defaultValue": "0"
+      },
+      {
+        "name": "maxLength",
+        "optional": true,
+        "types": [
+          "*"
+        ],
+        "defaultRaw": "undefined",
+        "defaultValue": "undefined"
+      },
+      {
+        "name": "nullable",
+        "optional": true,
+        "types": [
+          "boolean"
+        ],
+        "defaultRaw": false,
+        "defaultValue": "false"
+      },
+      {
+        "name": "unique",
+        "optional": true,
+        "types": [
+          "boolean"
+        ],
+        "defaultRaw": false,
+        "defaultValue": "false"
+      },
+      {
+        "name": "$default",
+        "optional": true,
+        "types": [
+          "*"
+        ],
+        "defaultRaw": "undefined",
+        "defaultValue": "undefined"
+      }
+    ],
+    "generator": false
+  },
+  {
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "type",
+    "memberof": "src/models/$Fields.js~BaseField",
+    "longname": "src/models/$Fields.js~BaseField#type",
+    "access": null,
+    "description": null,
+    "lineNumber": 24,
+    "undocument": true,
+    "type": {
+      "types": [
+        "string"
+      ]
+    }
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "create",
+    "memberof": "src/models/$Fields.js~BaseField",
+    "longname": "src/models/$Fields.js~BaseField#create",
+    "access": null,
+    "description": null,
+    "lineNumber": 50,
+    "undocument": true,
+    "params": [],
+    "generator": false
+  },
+  {
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "value",
+    "memberof": "src/models/$Fields.js~BaseField",
+    "longname": "src/models/$Fields.js~BaseField#value",
+    "access": null,
+    "description": null,
+    "lineNumber": 56,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "validate",
+    "memberof": "src/models/$Fields.js~BaseField",
+    "longname": "src/models/$Fields.js~BaseField#validate",
+    "access": null,
+    "description": null,
+    "lineNumber": 66,
+    "undocument": true,
+    "params": [
+      {
+        "name": "value",
+        "types": [
+          "*"
+        ]
+      }
+    ],
+    "return": {
+      "types": [
+        "boolean"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "file",
+    "static": true,
+    "variation": null,
+    "name": "src/models/BaseModel.js",
+    "memberof": null,
+    "longname": "src/models/BaseModel.js",
+    "access": null,
+    "description": null,
+    "lineNumber": 8,
+    "content": "/**\n * @module BaseModel.js\n * @author Joe Groseclose <@benderTheCrime>\n * @date 8/23/2015\n */\n\n// System Modules\nimport {cyan} from                      'chalk';\nimport $LogProvider from                'angie-log';\n\n// Angie Modules\nimport AngieDatabaseRouter from         '../databases/AngieDatabaseRouter';\nimport {\n    $$InvalidModelFieldReferenceError\n} from                                  '../util/$ExceptionsProvider';\n\nconst IGNORE_KEYS = [\n    'database',\n    '$$database',\n    'model',\n    'name',\n    'fields',\n    'rows',\n    'update',\n    'first',\n    'last'\n];\n\nclass BaseModel {\n    constructor(name) {\n        this.name = this.name || name;\n    }\n    all(args = {}) {\n        args.model = this;\n\n        // Returns all of the rows\n        return this.$$prep.apply(this, arguments).all(args);\n    }\n    fetch(args = {}) {\n        args.model = this;\n\n        // Returns a subset of rows specified with an int and a head/tail argument\n        return this.$$prep.apply(\n            this,\n            arguments\n        ).fetch(args);\n    }\n    filter(args = {}) {\n        args.model = this;\n\n        // Returns a filtered subset of rows\n        return this.$$prep.apply(\n            this,\n            arguments\n        ).filter(args);\n    }\n    exists(args = {}) {\n        args.model = args.model || this;\n        return this.filter.apply(this, arguments).then(function(queryset) {\n            return !!queryset[0];\n        });\n    }\n    create(args = {}) {\n        args.model = this;\n\n        this.database = this.$$prep.apply(this, arguments);\n\n        // Make sure all of our fields are resolved\n        let createObj = {},\n            me = this;\n\n        this.$fields().forEach(function(field) {\n            let val = args[ field ] || args.model[ field ].default || null;\n            if (typeof val === 'function') {\n                val = val.call(this, args);\n            }\n            if (\n                me[ field ] &&\n                me[ field ].validate &&\n                me[ field ].validate(val)\n            ) {\n                createObj[ field ] = val;\n            } else {\n                throw new $$InvalidModelFieldReferenceError(me.name, field);\n            }\n        });\n\n        // Once that is settled, we can call our create\n        return this.database.create(args);\n    }\n    $createUnlessExists(args = {}) {\n        args.model = this;\n\n        // Check to see if a matching record exists and if not create it\n        let me = this;\n        return this.exists(args).then((v) =>\n            me[ v ? 'fetch' : 'create' ](args)\n        );\n    }\n    delete(args = {}) {\n        args.model = this;\n\n        // Delete a record/set of records\n        return this.$$prep.apply(\n            this,\n            arguments\n        ).delete(args);\n    }\n    query(query, args = {}) {\n        if (typeof query !== 'string') {\n            return new Promise(function() {\n                arguments[1](new Error('Invalid Query String'));\n            });\n        }\n        return this.$$prep.apply(this, args).raw(query, this);\n    }\n    $fields() {\n        this.fields = [];\n        for (let key in this) {\n            if (\n                typeof this[ key ] === 'object' &&\n                IGNORE_KEYS.indexOf(key) === -1\n            ) {\n                this.fields.push(key);\n            }\n        }\n        return this.fields;\n    }\n    $$prep(args = {}) {\n        const database = typeof args === 'object' && args.hasOwnProperty('database') ?\n                  args.database : null;\n\n        // This forces the router to use a specific database, DB can also be\n        // forced at a model level by using this.database\n        this.$$database = AngieDatabaseRouter(\n            database || this.database || 'default'\n        );\n        return this.$$database;\n    }\n}\n\nclass $$InvalidRelationCrossReferenceError extends RangeError {\n    constructor(method, field) {\n        $LogProvider.error(\n            `Cannot ${method} reference on ${cyan(field.name)}: ` +\n            'No such existing record.'\n        );\n        super();\n    }\n}\n\nexport default BaseModel;"
+  },
+  {
+    "kind": "variable",
+    "static": true,
+    "variation": null,
+    "name": "IGNORE_KEYS",
+    "memberof": "src/models/BaseModel.js",
+    "longname": "src/models/BaseModel.js~IGNORE_KEYS",
+    "access": null,
+    "export": false,
+    "importPath": "angie-orm/src/models/BaseModel.js",
+    "importStyle": null,
+    "description": null,
+    "lineNumber": 17,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "kind": "class",
+    "static": true,
+    "variation": null,
+    "name": "$$InvalidRelationCrossReferenceError",
+    "memberof": "src/models/BaseModel.js",
+    "longname": "src/models/BaseModel.js~$$InvalidRelationCrossReferenceError",
+    "access": null,
+    "export": false,
+    "importPath": "angie-orm/src/models/BaseModel.js",
+    "importStyle": null,
+    "description": null,
+    "lineNumber": 142,
+    "undocument": true,
+    "interface": false,
+    "extends": [
+      "RangeError"
+    ]
+  },
+  {
+    "kind": "constructor",
+    "static": false,
+    "variation": null,
+    "name": "constructor",
+    "memberof": "src/models/BaseModel.js~$$InvalidRelationCrossReferenceError",
+    "longname": "src/models/BaseModel.js~$$InvalidRelationCrossReferenceError#constructor",
+    "access": null,
+    "description": null,
+    "lineNumber": 143,
+    "undocument": true,
+    "params": [
+      {
+        "name": "method",
+        "types": [
+          "*"
+        ]
+      },
+      {
+        "name": "field",
+        "types": [
+          "*"
+        ]
+      }
+    ],
+    "generator": false
+  },
+  {
+    "kind": "class",
+    "static": true,
+    "variation": null,
+    "name": "BaseModel",
+    "memberof": "src/models/BaseModel.js",
+    "longname": "src/models/BaseModel.js~BaseModel",
+    "access": null,
+    "export": true,
+    "importPath": "angie-orm/src/models/BaseModel.js",
+    "importStyle": "BaseModel",
+    "description": null,
+    "lineNumber": 29,
+    "undocument": true,
+    "interface": false
+  },
+  {
+    "kind": "constructor",
+    "static": false,
+    "variation": null,
+    "name": "constructor",
+    "memberof": "src/models/BaseModel.js~BaseModel",
+    "longname": "src/models/BaseModel.js~BaseModel#constructor",
+    "access": null,
+    "description": null,
+    "lineNumber": 30,
+    "undocument": true,
+    "params": [
+      {
+        "name": "name",
+        "types": [
+          "*"
+        ]
+      }
+    ],
+    "generator": false
+  },
+  {
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "name",
+    "memberof": "src/models/BaseModel.js~BaseModel",
+    "longname": "src/models/BaseModel.js~BaseModel#name",
+    "access": null,
+    "description": null,
+    "lineNumber": 31,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "all",
+    "memberof": "src/models/BaseModel.js~BaseModel",
+    "longname": "src/models/BaseModel.js~BaseModel#all",
+    "access": null,
+    "description": null,
+    "lineNumber": 33,
+    "undocument": true,
+    "params": [
+      {
+        "name": "args",
+        "optional": true,
+        "types": [
+          "{}"
+        ],
+        "defaultRaw": {},
+        "defaultValue": "{}"
+      }
+    ],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "fetch",
+    "memberof": "src/models/BaseModel.js~BaseModel",
+    "longname": "src/models/BaseModel.js~BaseModel#fetch",
+    "access": null,
+    "description": null,
+    "lineNumber": 39,
+    "undocument": true,
+    "params": [
+      {
+        "name": "args",
+        "optional": true,
+        "types": [
+          "{}"
+        ],
+        "defaultRaw": {},
+        "defaultValue": "{}"
+      }
+    ],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "filter",
+    "memberof": "src/models/BaseModel.js~BaseModel",
+    "longname": "src/models/BaseModel.js~BaseModel#filter",
+    "access": null,
+    "description": null,
+    "lineNumber": 48,
+    "undocument": true,
+    "params": [
+      {
+        "name": "args",
+        "optional": true,
+        "types": [
+          "{}"
+        ],
+        "defaultRaw": {},
+        "defaultValue": "{}"
+      }
+    ],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "exists",
+    "memberof": "src/models/BaseModel.js~BaseModel",
+    "longname": "src/models/BaseModel.js~BaseModel#exists",
+    "access": null,
+    "description": null,
+    "lineNumber": 57,
+    "undocument": true,
+    "params": [
+      {
+        "name": "args",
+        "optional": true,
+        "types": [
+          "{}"
+        ],
+        "defaultRaw": {},
+        "defaultValue": "{}"
+      }
+    ],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "create",
+    "memberof": "src/models/BaseModel.js~BaseModel",
+    "longname": "src/models/BaseModel.js~BaseModel#create",
+    "access": null,
+    "description": null,
+    "lineNumber": 63,
+    "undocument": true,
+    "params": [
+      {
+        "name": "args",
+        "optional": true,
+        "types": [
+          "{}"
+        ],
+        "defaultRaw": {},
+        "defaultValue": "{}"
+      }
+    ],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "database",
+    "memberof": "src/models/BaseModel.js~BaseModel",
+    "longname": "src/models/BaseModel.js~BaseModel#database",
+    "access": null,
+    "description": null,
+    "lineNumber": 66,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "$createUnlessExists",
+    "memberof": "src/models/BaseModel.js~BaseModel",
+    "longname": "src/models/BaseModel.js~BaseModel#$createUnlessExists",
+    "access": null,
+    "description": null,
+    "lineNumber": 91,
+    "undocument": true,
+    "params": [
+      {
+        "name": "args",
+        "optional": true,
+        "types": [
+          "{}"
+        ],
+        "defaultRaw": {},
+        "defaultValue": "{}"
+      }
+    ],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "delete",
+    "memberof": "src/models/BaseModel.js~BaseModel",
+    "longname": "src/models/BaseModel.js~BaseModel#delete",
+    "access": null,
+    "description": null,
+    "lineNumber": 100,
+    "undocument": true,
+    "params": [
+      {
+        "name": "args",
+        "optional": true,
+        "types": [
+          "{}"
+        ],
+        "defaultRaw": {},
+        "defaultValue": "{}"
+      }
+    ],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "query",
+    "memberof": "src/models/BaseModel.js~BaseModel",
+    "longname": "src/models/BaseModel.js~BaseModel#query",
+    "access": null,
+    "description": null,
+    "lineNumber": 109,
+    "undocument": true,
+    "params": [
+      {
+        "name": "query",
+        "types": [
+          "*"
+        ]
+      },
+      {
+        "name": "args",
+        "optional": true,
+        "types": [
+          "{}"
+        ],
+        "defaultRaw": {},
+        "defaultValue": "{}"
+      }
+    ],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "$fields",
+    "memberof": "src/models/BaseModel.js~BaseModel",
+    "longname": "src/models/BaseModel.js~BaseModel#$fields",
+    "access": null,
+    "description": null,
+    "lineNumber": 117,
+    "undocument": true,
+    "params": [],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "fields",
+    "memberof": "src/models/BaseModel.js~BaseModel",
+    "longname": "src/models/BaseModel.js~BaseModel#fields",
+    "access": null,
+    "description": null,
+    "lineNumber": 118,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "$$prep",
+    "memberof": "src/models/BaseModel.js~BaseModel",
+    "longname": "src/models/BaseModel.js~BaseModel#$$prep",
+    "access": null,
+    "description": null,
+    "lineNumber": 129,
+    "undocument": true,
+    "params": [
+      {
+        "name": "args",
+        "optional": true,
+        "types": [
+          "{}"
+        ],
+        "defaultRaw": {},
+        "defaultValue": "{}"
+      }
+    ],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "$$database",
+    "memberof": "src/models/BaseModel.js~BaseModel",
+    "longname": "src/models/BaseModel.js~BaseModel#$$database",
+    "access": null,
+    "description": null,
+    "lineNumber": 135,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "kind": "file",
+    "static": true,
+    "variation": null,
+    "name": "src/util/$ExceptionsProvider.js",
+    "memberof": null,
+    "longname": "src/util/$ExceptionsProvider.js",
+    "access": null,
+    "description": null,
+    "lineNumber": 8,
+    "content": "/**\n * @module $ExceptionsProvider.js\n * @author Joe Groseclose <@benderTheCrime>\n * @date 8/23/2015\n */\n\n// System Modules\nimport {magenta, cyan} from         'chalk';\nimport $LogProvider from            'angie-log';\n\nconst p = process;\n\nclass $$InvalidConfigError extends ReferenceError {\n    constructor(name = '') {\n        $LogProvider.error(\n            `Invalid${name ? ` ${name}` : ''} configuration settings. ` +\n            'Please check your AngieFile.'\n        );\n        super();\n    }\n}\n\nclass $$InvalidDatabaseConfigError extends $$InvalidConfigError {\n    constructor() {\n        super('database');\n    }\n}\n\nclass $$InvalidModelConfigError extends TypeError {\n    constructor(name, error = '') {\n        $LogProvider.error(\n            'Invalid Model configuration for model ' +\n            `${magenta(name)} <-- ${magenta(name)}${magenta('Provider')}` +\n            `${error ? ` ${error}` : ''}`\n        );\n        super();\n        p.exit(1);\n    }\n}\n\nclass $$InvalidModelReferenceError extends Error {\n    constructor() {\n        $LogProvider.error('Invalid Model argument');\n        super();\n        p.exit(1);\n    }\n}\n\nclass $$InvalidModelFieldReferenceError extends Error {\n    constructor(name = '', field) {\n        $LogProvider.error(\n            `Invalid param for Model ${cyan(name)}.${cyan(field)}`\n        );\n        super();\n        p.exit(1);\n    }\n}\n\nexport {\n    $$InvalidConfigError,\n    $$InvalidDatabaseConfigError,\n    $$InvalidModelConfigError,\n    $$InvalidModelReferenceError,\n    $$InvalidModelFieldReferenceError\n};"
+  },
+  {
+    "kind": "variable",
+    "static": true,
+    "variation": null,
+    "name": "p",
+    "memberof": "src/util/$ExceptionsProvider.js",
+    "longname": "src/util/$ExceptionsProvider.js~p",
+    "access": null,
+    "export": false,
+    "importPath": "angie-orm/src/util/$ExceptionsProvider.js",
+    "importStyle": null,
+    "description": null,
+    "lineNumber": 11,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "kind": "class",
+    "static": true,
+    "variation": null,
+    "name": "$$InvalidDatabaseConfigError",
+    "memberof": "src/util/$ExceptionsProvider.js",
+    "longname": "src/util/$ExceptionsProvider.js~$$InvalidDatabaseConfigError",
+    "access": null,
+    "export": false,
+    "importPath": "angie-orm/src/util/$ExceptionsProvider.js",
+    "importStyle": null,
+    "description": null,
+    "lineNumber": 23,
+    "undocument": true,
+    "interface": false,
+    "extends": [
+      "$$InvalidConfigError"
+    ]
+  },
+  {
+    "kind": "constructor",
+    "static": false,
+    "variation": null,
+    "name": "constructor",
+    "memberof": "src/util/$ExceptionsProvider.js~$$InvalidDatabaseConfigError",
+    "longname": "src/util/$ExceptionsProvider.js~$$InvalidDatabaseConfigError#constructor",
+    "access": null,
+    "description": null,
+    "lineNumber": 24,
+    "undocument": true,
+    "params": [],
+    "generator": false
+  },
+  {
+    "kind": "class",
+    "static": true,
+    "variation": null,
+    "name": "$$InvalidModelConfigError",
+    "memberof": "src/util/$ExceptionsProvider.js",
+    "longname": "src/util/$ExceptionsProvider.js~$$InvalidModelConfigError",
+    "access": null,
+    "export": false,
+    "importPath": "angie-orm/src/util/$ExceptionsProvider.js",
+    "importStyle": null,
+    "description": null,
+    "lineNumber": 29,
+    "undocument": true,
+    "interface": false,
+    "extends": [
+      "TypeError"
+    ]
+  },
+  {
+    "kind": "constructor",
+    "static": false,
+    "variation": null,
+    "name": "constructor",
+    "memberof": "src/util/$ExceptionsProvider.js~$$InvalidModelConfigError",
+    "longname": "src/util/$ExceptionsProvider.js~$$InvalidModelConfigError#constructor",
+    "access": null,
+    "description": null,
+    "lineNumber": 30,
+    "undocument": true,
+    "params": [
+      {
+        "name": "name",
+        "types": [
+          "*"
+        ]
+      },
+      {
+        "name": "error",
+        "optional": true,
+        "types": [
+          "string"
+        ],
+        "defaultRaw": "",
+        "defaultValue": ""
+      }
+    ],
+    "generator": false
+  },
+  {
+    "kind": "class",
+    "static": true,
+    "variation": null,
+    "name": "$$InvalidModelReferenceError",
+    "memberof": "src/util/$ExceptionsProvider.js",
+    "longname": "src/util/$ExceptionsProvider.js~$$InvalidModelReferenceError",
+    "access": null,
+    "export": false,
+    "importPath": "angie-orm/src/util/$ExceptionsProvider.js",
+    "importStyle": null,
+    "description": null,
+    "lineNumber": 41,
+    "undocument": true,
+    "interface": false,
+    "extends": [
+      "Error"
+    ]
+  },
+  {
+    "kind": "constructor",
+    "static": false,
+    "variation": null,
+    "name": "constructor",
+    "memberof": "src/util/$ExceptionsProvider.js~$$InvalidModelReferenceError",
+    "longname": "src/util/$ExceptionsProvider.js~$$InvalidModelReferenceError#constructor",
+    "access": null,
+    "description": null,
+    "lineNumber": 42,
+    "undocument": true,
+    "params": [],
+    "generator": false
+  },
+  {
+    "kind": "class",
+    "static": true,
+    "variation": null,
+    "name": "$$InvalidModelFieldReferenceError",
+    "memberof": "src/util/$ExceptionsProvider.js",
+    "longname": "src/util/$ExceptionsProvider.js~$$InvalidModelFieldReferenceError",
+    "access": null,
+    "export": false,
+    "importPath": "angie-orm/src/util/$ExceptionsProvider.js",
+    "importStyle": null,
+    "description": null,
+    "lineNumber": 49,
+    "undocument": true,
+    "interface": false,
+    "extends": [
+      "Error"
+    ]
+  },
+  {
+    "kind": "constructor",
+    "static": false,
+    "variation": null,
+    "name": "constructor",
+    "memberof": "src/util/$ExceptionsProvider.js~$$InvalidModelFieldReferenceError",
+    "longname": "src/util/$ExceptionsProvider.js~$$InvalidModelFieldReferenceError#constructor",
+    "access": null,
+    "description": null,
+    "lineNumber": 50,
+    "undocument": true,
+    "params": [
+      {
+        "name": "name",
+        "optional": true,
+        "types": [
+          "string"
+        ],
+        "defaultRaw": "",
+        "defaultValue": ""
+      },
+      {
+        "name": "field",
+        "types": [
+          "*"
+        ]
+      }
+    ],
+    "generator": false
+  },
+  {
+    "kind": "class",
+    "static": true,
+    "variation": null,
+    "name": "$$InvalidConfigError",
+    "memberof": "src/util/$ExceptionsProvider.js",
+    "longname": "src/util/$ExceptionsProvider.js~$$InvalidConfigError",
+    "access": null,
+    "export": true,
+    "importPath": "angie-orm/src/util/$ExceptionsProvider.js",
+    "importStyle": "{$$InvalidConfigError}",
+    "description": null,
+    "lineNumber": 13,
+    "undocument": true,
+    "interface": false,
+    "extends": [
+      "ReferenceError"
+    ]
+  },
+  {
+    "kind": "constructor",
+    "static": false,
+    "variation": null,
+    "name": "constructor",
+    "memberof": "src/util/$ExceptionsProvider.js~$$InvalidConfigError",
+    "longname": "src/util/$ExceptionsProvider.js~$$InvalidConfigError#constructor",
+    "access": null,
+    "description": null,
+    "lineNumber": 14,
+    "undocument": true,
+    "params": [
+      {
+        "name": "name",
+        "optional": true,
+        "types": [
+          "string"
+        ],
+        "defaultRaw": "",
+        "defaultValue": ""
+      }
+    ],
+    "generator": false
+  },
+  {
+    "kind": "file",
+    "static": true,
+    "variation": null,
+    "name": "src/util/decorators.js",
+    "memberof": null,
+    "longname": "src/util/decorators.js",
+    "access": null,
+    "description": null,
+    "lineNumber": 7,
+    "content": "/**\n * @module decorators.js\n * @author Joe Groseclose <@benderTheCrime>\n * @date 8/23/2015\n */\n\nfunction Base(name) {\n    return (obj) => { global.app[ name ](obj.prototype.constructor.name, obj); };\n}\n\nconst Model = Base('Model');\n\nexport {Model};"
+  },
+  {
+    "kind": "variable",
+    "static": true,
+    "variation": null,
+    "name": "Model",
+    "memberof": "src/util/decorators.js",
+    "longname": "src/util/decorators.js~Model",
+    "access": null,
+    "export": false,
+    "importPath": "angie-orm/src/util/decorators.js",
+    "importStyle": null,
+    "description": null,
+    "lineNumber": 11,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "kind": "function",
+    "static": true,
+    "variation": null,
+    "name": "Base",
+    "memberof": "src/util/decorators.js",
+    "longname": "src/util/decorators.js~Base",
+    "access": null,
+    "export": true,
+    "importPath": "angie-orm/src/util/decorators.js",
+    "importStyle": "{Base}",
+    "description": null,
+    "lineNumber": 7,
+    "unknown": [
+      {
+        "tagName": "@module",
+        "tagValue": "decorators.js"
+      },
+      {
+        "tagName": "@author",
+        "tagValue": "Joe Groseclose <@benderTheCrime>"
+      },
+      {
+        "tagName": "@date",
+        "tagValue": "8/23/2015"
+      }
+    ],
+    "params": [
+      {
+        "name": "name",
+        "types": [
+          "*"
+        ]
+      }
+    ],
+    "return": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Infinity",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Infinity",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Infinity",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "NaN",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/NaN",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~NaN",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "undefined",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/undefined",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~undefined",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "null",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/null",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~null",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Object",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Object",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "object",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~object",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Function",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Function",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "function",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~function",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Boolean",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Boolean",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Boolean",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "boolean",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Boolean",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~boolean",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Symbol",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Symbol",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Symbol",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Error",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Error",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "EvalError",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/EvalError",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~EvalError",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "InternalError",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/InternalError",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~InternalError",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "RangeError",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RangeError",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~RangeError",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "ReferenceError",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ReferenceError",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~ReferenceError",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "SyntaxError",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SyntaxError",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~SyntaxError",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "TypeError",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypeError",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~TypeError",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "URIError",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/URIError",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~URIError",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Number",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Number",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "number",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~number",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Date",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Date",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "String",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~String",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "string",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~string",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "RegExp",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~RegExp",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Array",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Array",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Int8Array",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Int8Array",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Int8Array",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Uint8Array",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Uint8Array",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Uint8ClampedArray",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8ClampedArray",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Uint8ClampedArray",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Int16Array",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Int16Array",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Int16Array",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Uint16Array",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint16Array",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Uint16Array",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Int32Array",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Int32Array",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Int32Array",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Uint32Array",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint32Array",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Uint32Array",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Float32Array",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Float32Array",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Float32Array",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Float64Array",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Float64Array",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Float64Array",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Map",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Map",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Set",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Set",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "WeakMap",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WeakMap",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~WeakMap",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "WeakSet",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WeakSet",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~WeakSet",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "ArrayBuffer",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~ArrayBuffer",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "DataView",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/DataView",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~DataView",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "JSON",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~JSON",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Promise",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Promise",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Generator",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Generator",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Generator",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "GeneratorFunction",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/GeneratorFunction",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~GeneratorFunction",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Reflect",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Reflect",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Reflect",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Proxy",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Proxy",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "CanvasRenderingContext2D",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D",
+    "memberof": "BuiltinExternal/WebAPIExternal.js",
+    "longname": "BuiltinExternal/WebAPIExternal.js~CanvasRenderingContext2D",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "DocumentFragment",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/API/DocumentFragment",
+    "memberof": "BuiltinExternal/WebAPIExternal.js",
+    "longname": "BuiltinExternal/WebAPIExternal.js~DocumentFragment",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Element",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/API/Element",
+    "memberof": "BuiltinExternal/WebAPIExternal.js",
+    "longname": "BuiltinExternal/WebAPIExternal.js~Element",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Event",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/API/Event",
+    "memberof": "BuiltinExternal/WebAPIExternal.js",
+    "longname": "BuiltinExternal/WebAPIExternal.js~Event",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Node",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/API/Node",
+    "memberof": "BuiltinExternal/WebAPIExternal.js",
+    "longname": "BuiltinExternal/WebAPIExternal.js~Node",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "NodeList",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/API/NodeList",
+    "memberof": "BuiltinExternal/WebAPIExternal.js",
+    "longname": "BuiltinExternal/WebAPIExternal.js~NodeList",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "XMLHttpRequest",
+    "externalLink": "https://developer.mozilla.org/en/docs/Web/API/XMLHttpRequest",
+    "memberof": "BuiltinExternal/WebAPIExternal.js",
+    "longname": "BuiltinExternal/WebAPIExternal.js~XMLHttpRequest",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  }
+]

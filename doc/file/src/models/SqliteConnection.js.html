@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <base data-ice="baseUrl" href="../../../">
+  <title data-ice="title">src/models/SqliteConnection.js | API Document</title>
+  <link type="text/css" rel="stylesheet" href="css/style.css">
+  <link type="text/css" rel="stylesheet" href="css/prettify-tomorrow.css">
+  <script src="script/prettify/prettify.js"></script>
+  
+  
+</head>
+<body class="layout-container">
+
+<header>
+  <a href="./">Home</a>
+  <a href="identifiers.html">Identifier</a>
+  <a href="source.html">Source</a>
+  
+  <a data-ice="repoURL" href="https://github.com/benderTheCrime/angie-orm.git" class="repo-url-github">Repository</a>
+  <div class="search-box">
+  <span>
+    <img src="./image/search.png">
+    <span class="search-input-edge"></span><input class="search-input"><span class="search-input-edge"></span>
+  </span>
+    <ul class="search-result"></ul>
+  </div>
+</header>
+
+<nav class="navigation" data-ice="nav"><div data-ice="classWrap">
+  <h2>Class</h2>
+  <ul>
+    
+  <li data-ice="classDoc"><span><a href="class/src/util/$ExceptionsProvider.js~$$InvalidConfigError.html">$$InvalidConfigError</a></span></li>
+<li data-ice="classDoc"><span><a href="class/src/models/$Fields.js~BaseField.html">BaseField</a></span></li>
+<li data-ice="classDoc"><span><a href="class/src/models/BaseModel.js~BaseModel.html">BaseModel</a></span></li>
+<li data-ice="classDoc"><span><a href="class/src/models/FirebaseConnection.js~FirebaseConnection.html">FirebaseConnection</a></span></li>
+<li data-ice="classDoc"><span><a href="class/src/models/MongoDBConnection.js~MongoDBConnection.html">MongoDBConnection</a></span></li>
+<li data-ice="classDoc"><span><a href="class/src/models/MySqlConnection.js~MySqlConnection.html">MySqlConnection</a></span></li>
+<li data-ice="classDoc"><span><a href="class/src/models/SqliteConnection.js~SqliteConnection.html">SqliteConnection</a></span></li>
+</ul>
+</div>
+
+
+
+<div data-ice="functionWrap">
+  <h2><a href="function/">Function</a></h2>
+  <ul>
+    
+  <li data-ice="functionDoc"><span><a href="function/index.html#static-function-AngieDatabaseRouter">AngieDatabaseRouter</a></span></li>
+<li data-ice="functionDoc"><span><a href="function/index.html#static-function-Base">Base</a></span></li>
+<li data-ice="functionDoc"><span><a href="function/index.html#static-function-runTests">runTests</a></span></li>
+</ul>
+</div>
+
+
+
+
+
+
+</nav>
+
+<div class="content" data-ice="content"><h1 data-ice="title">src/models/SqliteConnection.js</h1>
+<pre class="source-code line-number"><code class="prettyprint linenums" data-ice="content">/**
+ * @module SqliteConnection.js
+ * @author Joe Groseclose &lt;@benderTheCrime&gt;
+ * @date 8/23/2015
+ */
+
+// System Modules
+import fs from                          &apos;fs&apos;;
+import sqlite3 from                     &apos;sqlite3&apos;;
+import {cyan, magenta, gray} from       &apos;chalk&apos;;
+import $LogProvider from                &apos;angie-log&apos;;
+
+// Angie Modules
+import BaseDBConnection, {
+    $$DatabaseConnectivityError
+} from                                  &apos;./BaseDBConnection&apos;;
+import {
+    $$InvalidDatabaseConfigError
+} from                                  &apos;../util/$ExceptionsProvider&apos;;
+
+sqlite3.verbose();
+
+const p = process;
+$LogProvider.sqliteInfo = $LogProvider.info.bind(null, &apos;Sqlite&apos;);
+
+class SqliteConnection extends BaseDBConnection {
+    constructor(database, destructive, dryRun) {
+        super(database, destructive, dryRun);
+
+        let db = this.database;
+        if (!db.name) {
+            throw new $$InvalidDatabaseConfigError();
+        }
+        this.name = this.database.name || this.database.alias;
+    }
+    types(field) {
+        let type = field.type;
+        if (!type) {
+            return;
+        }
+        switch (type) {
+            case &apos;CharField&apos;:
+                return `TEXT${field.nullable ? &apos; NOT NULL&apos; : &apos;&apos;}`;
+
+            // TODO support different size integers: TINY, SMALL, MEDIUM
+            case &apos;IntegerField&apos;:
+                return `INTEGER${field.nullable ? &apos; NOT NULL&apos; : &apos;&apos;}`;
+            case &apos;KeyField&apos;:
+                return `INTEGER${field.nullable ? &apos; NOT NULL&apos; : &apos;&apos;}`;
+            case &apos;ForeignKeyField&apos;:
+                return `INTEGER REFERENCES ${field.rel}(id)`;
+            default:
+                return undefined;
+        }
+    }
+    connect() {
+        let db = this.database;
+        if (!this.connection) {
+            try {
+                this.connection = new sqlite3.Database(this.name);
+                $LogProvider.sqliteInfo(&apos;Connection successful&apos;);
+            } catch(err) {
+                throw new $$DatabaseConnectivityError(db);
+            }
+        }
+        return this.connection;
+    }
+    disconnect() {
+        this.connect().close();
+        return this;
+    }
+    query(query, model, key) {
+        let me = this,
+            name = this.name;
+        return new Promise(function(resolve) {
+            $LogProvider.sqliteInfo(`Query: ${cyan(name)}: ${magenta(query)}`);
+            me.connect().parallelize(function() {
+                me.connection[ key ](query, function(e, rows = []) {
+                    if (e) {
+                        $LogProvider.warn(e);
+                    }
+                    resolve([ rows, e ]);
+                });
+            });
+        }).then(function(args) {
+            return me.$$queryset(model, query, args[0], args[1]);
+        });
+    }
+    run(query, model) {
+        return this.query(query, model, &apos;run&apos;);
+    }
+    all() {
+        const query = super.all.apply(this, arguments);
+        return this.query(query, arguments[0].model, &apos;all&apos;);
+    }
+    create() {
+        const query = super.create.apply(this, arguments);
+        return this.query(query, arguments[0].model, &apos;all&apos;);
+    }
+    delete() {
+        const query = super.delete.apply(this, arguments);
+        return this.query(query, arguments[0].model,  &apos;all&apos;);
+    }
+    update() {
+        const query = super.update.apply(this, arguments);
+        return this.query(query, arguments[0].model,  &apos;all&apos;);
+    }
+    raw(query, model) {
+        return this.query(query, model, &apos;all&apos;);
+    }
+    sync() {
+        let me = this;
+        super.sync().then(function() {
+            let proms = [];
+
+            // TODO test this in another directory
+            if (!fs.existsSync(me.name)) {
+
+                // Connection does not exist and we must touch the db file
+                fs.closeSync(fs.openSync(me.name, &apos;w&apos;));
+            }
+
+            let models = me.models();
+            for (let model in models) {
+
+                // Fetch models and get model name
+                let instance = models[ model ],
+                    modelName = instance.name || instance.alias ||
+                        me.$$name(instance);
+
+                // Run a table creation with an ID for each table
+                proms.push(me.run(
+                    `CREATE TABLE ${modelName} ` +
+                    &apos;(id INTEGER PRIMARY KEY AUTOINCREMENT);&apos;,
+                    modelName
+                ));
+            }
+            return Promise.all(proms).then(function() {
+                return me.migrate();
+            });
+        });
+    }
+    migrate() {
+        let me = this;
+        return super.migrate().then(function() {
+            let models = me.models(),
+                proms = [],
+                logged = true;
+
+            for (let key in models) {
+                const model = models[ key ],
+                      modelName = me.$$name(model.name || model.alias),
+                      fields = model.$fields();
+                if (me.destructive &amp;&amp; logged) {
+
+                    // TODO recommmend that the user copy the table over
+                    // without the column, delete the original, and
+                    // rename the table
+                    $LogProvider.error(
+                        &apos;You have specified a destructive Migration and &apos; +
+                        `have fields in the ${cyan(modelName)} model ` +
+                        &apos;which do not exist in your app.Model code. &apos; +
+                        &apos;However, sqlite3 destructive migrations are not &apos; +
+                        &apos;supported. Please see the docs for more info.&apos;
+                    );
+                    logged = false;
+                }
+
+                fields.forEach(function(v) {
+                    if (model[ v ].type === &apos;ManyToManyField&apos;) {
+                        return;
+                    }
+
+                    let query,
+                        $default;
+                    if (model[ v ].default) {
+                        $default = model[ v ].default;
+                        if (typeof $default === &apos;function&apos;) {
+                            $default = $default();
+                        }
+                    }
+                    query =
+                        `ALTER TABLE ${modelName} ADD COLUMN ${v} ` +
+                        `${me.types(model[ v ])}` +
+                        `${model[ v ].unique ? &apos; UNIQUE&apos; : &apos;&apos;}` +
+                        `${$default ? ` DEFAULT &apos;${$default}&apos;` : &apos;&apos;};`;
+                    if (!me.dryRun) {
+                        proms.push(me.run(query));
+                    } else {
+                        $LogProvider.sqliteInfo(`Dry Run Query: ${gray(query)}`);
+                    }
+                });
+            }
+            return Promise.all(proms);
+        }).then(function() {
+            me.disconnect();
+            $LogProvider.sqliteInfo(
+                `Successfully Synced &amp; Migrated ${cyan(me.name)}`
+            );
+            p.exit(0);
+        });
+    }
+}
+
+export default SqliteConnection;</code></pre>
+</div>
+
+<footer class="footer">
+  Generated by <a href="https://esdoc.org">ESDoc<span data-ice="esdocVersion">(0.1.2)</span></a>
+</footer>
+
+<script src="script/search_index.js"></script>
+<script src="script/search.js"></script>
+<script src="script/pretty-print.js"></script>
+<script src="script/inherited-summary.js"></script>
+<script src="script/test-summary.js"></script>
+<script src="script/inner-link.js"></script>
+<script src="script/patch-for-local.js"></script>
+</body>
+</html>

@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <base data-ice="baseUrl" href="../../../">
+  <title data-ice="title">src/models/BaseModel.js | API Document</title>
+  <link type="text/css" rel="stylesheet" href="css/style.css">
+  <link type="text/css" rel="stylesheet" href="css/prettify-tomorrow.css">
+  <script src="script/prettify/prettify.js"></script>
+  
+  
+</head>
+<body class="layout-container">
+
+<header>
+  <a href="./">Home</a>
+  <a href="identifiers.html">Identifier</a>
+  <a href="source.html">Source</a>
+  
+  <a data-ice="repoURL" href="https://github.com/benderTheCrime/angie-orm.git" class="repo-url-github">Repository</a>
+  <div class="search-box">
+  <span>
+    <img src="./image/search.png">
+    <span class="search-input-edge"></span><input class="search-input"><span class="search-input-edge"></span>
+  </span>
+    <ul class="search-result"></ul>
+  </div>
+</header>
+
+<nav class="navigation" data-ice="nav"><div data-ice="classWrap">
+  <h2>Class</h2>
+  <ul>
+    
+  <li data-ice="classDoc"><span><a href="class/src/util/$ExceptionsProvider.js~$$InvalidConfigError.html">$$InvalidConfigError</a></span></li>
+<li data-ice="classDoc"><span><a href="class/src/models/$Fields.js~BaseField.html">BaseField</a></span></li>
+<li data-ice="classDoc"><span><a href="class/src/models/BaseModel.js~BaseModel.html">BaseModel</a></span></li>
+<li data-ice="classDoc"><span><a href="class/src/databases/FirebaseConnection.js~FirebaseConnection.html">FirebaseConnection</a></span></li>
+<li data-ice="classDoc"><span><a href="class/src/databases/MongoDBConnection.js~MongoDBConnection.html">MongoDBConnection</a></span></li>
+<li data-ice="classDoc"><span><a href="class/src/databases/MySqlConnection.js~MySqlConnection.html">MySqlConnection</a></span></li>
+<li data-ice="classDoc"><span><a href="class/src/databases/SqliteConnection.js~SqliteConnection.html">SqliteConnection</a></span></li>
+</ul>
+</div>
+
+
+
+<div data-ice="functionWrap">
+  <h2><a href="function/">Function</a></h2>
+  <ul>
+    
+  <li data-ice="functionDoc"><span><a href="function/index.html#static-function-AngieDatabaseRouter">AngieDatabaseRouter</a></span></li>
+<li data-ice="functionDoc"><span><a href="function/index.html#static-function-Base">Base</a></span></li>
+<li data-ice="functionDoc"><span><a href="function/index.html#static-function-runTests">runTests</a></span></li>
+</ul>
+</div>
+
+
+
+
+
+
+</nav>
+
+<div class="content" data-ice="content"><h1 data-ice="title">src/models/BaseModel.js</h1>
+<pre class="source-code line-number"><code class="prettyprint linenums" data-ice="content">/**
+ * @module BaseModel.js
+ * @author Joe Groseclose &lt;@benderTheCrime&gt;
+ * @date 8/23/2015
+ */
+
+// System Modules
+import {cyan} from                      &apos;chalk&apos;;
+import $LogProvider from                &apos;angie-log&apos;;
+
+// Angie Modules
+import AngieDatabaseRouter from         &apos;../databases/AngieDatabaseRouter&apos;;
+import {
+    $$InvalidModelFieldReferenceError
+} from                                  &apos;../util/$ExceptionsProvider&apos;;
+
+const IGNORE_KEYS = [
+    &apos;database&apos;,
+    &apos;$$database&apos;,
+    &apos;model&apos;,
+    &apos;name&apos;,
+    &apos;fields&apos;,
+    &apos;rows&apos;,
+    &apos;update&apos;,
+    &apos;first&apos;,
+    &apos;last&apos;
+];
+
+class BaseModel {
+    constructor(name) {
+        this.name = this.name || name;
+    }
+    all(args = {}) {
+        args.model = this;
+
+        // Returns all of the rows
+        return this.$$prep.apply(this, arguments).all(args);
+    }
+    fetch(args = {}) {
+        args.model = this;
+
+        // Returns a subset of rows specified with an int and a head/tail argument
+        return this.$$prep.apply(
+            this,
+            arguments
+        ).fetch(args);
+    }
+    filter(args = {}) {
+        args.model = this;
+
+        // Returns a filtered subset of rows
+        return this.$$prep.apply(
+            this,
+            arguments
+        ).filter(args);
+    }
+    exists(args = {}) {
+        args.model = args.model || this;
+        return this.filter.apply(this, arguments).then(function(queryset) {
+            return !!queryset[0];
+        });
+    }
+    create(args = {}) {
+        args.model = this;
+
+        this.database = this.$$prep.apply(this, arguments);
+
+        // Make sure all of our fields are resolved
+        let createObj = {},
+            me = this;
+
+        this.$fields().forEach(function(field) {
+            let val = args[ field ] || args.model[ field ].default || null;
+            if (typeof val === &apos;function&apos;) {
+                val = val.call(this, args);
+            }
+            if (
+                me[ field ] &amp;&amp;
+                me[ field ].validate &amp;&amp;
+                me[ field ].validate(val)
+            ) {
+                createObj[ field ] = val;
+            } else {
+                throw new $$InvalidModelFieldReferenceError(me.name, field);
+            }
+        });
+
+        // Once that is settled, we can call our create
+        return this.database.create(args);
+    }
+    $createUnlessExists(args = {}) {
+        args.model = this;
+
+        // Check to see if a matching record exists and if not create it
+        let me = this;
+        return this.exists(args).then((v) =&gt;
+            me[ v ? &apos;fetch&apos; : &apos;create&apos; ](args)
+        );
+    }
+    delete(args = {}) {
+        args.model = this;
+
+        // Delete a record/set of records
+        return this.$$prep.apply(
+            this,
+            arguments
+        ).delete(args);
+    }
+    query(query, args = {}) {
+        if (typeof query !== &apos;string&apos;) {
+            return new Promise(function() {
+                arguments[1](new Error(&apos;Invalid Query String&apos;));
+            });
+        }
+        return this.$$prep.apply(this, args).raw(query, this);
+    }
+    $fields() {
+        this.fields = [];
+        for (let key in this) {
+            if (
+                typeof this[ key ] === &apos;object&apos; &amp;&amp;
+                IGNORE_KEYS.indexOf(key) === -1
+            ) {
+                this.fields.push(key);
+            }
+        }
+        return this.fields;
+    }
+    $$prep(args = {}) {
+        const database = typeof args === &apos;object&apos; &amp;&amp; args.hasOwnProperty(&apos;database&apos;) ?
+                  args.database : null;
+
+        // This forces the router to use a specific database, DB can also be
+        // forced at a model level by using this.database
+        this.$$database = AngieDatabaseRouter(
+            database || this.database || &apos;default&apos;
+        );
+        return this.$$database;
+    }
+}
+
+class $$InvalidRelationCrossReferenceError extends RangeError {
+    constructor(method, field) {
+        $LogProvider.error(
+            `Cannot ${method} reference on ${cyan(field.name)}: ` +
+            &apos;No such existing record.&apos;
+        );
+        super();
+    }
+}
+
+export default BaseModel;</code></pre>
+</div>
+
+<footer class="footer">
+  Generated by <a href="https://esdoc.org">ESDoc<span data-ice="esdocVersion">(0.1.2)</span></a>
+</footer>
+
+<script src="script/search_index.js"></script>
+<script src="script/search.js"></script>
+<script src="script/pretty-print.js"></script>
+<script src="script/inherited-summary.js"></script>
+<script src="script/test-summary.js"></script>
+<script src="script/inner-link.js"></script>
+<script src="script/patch-for-local.js"></script>
+</body>
+</html>

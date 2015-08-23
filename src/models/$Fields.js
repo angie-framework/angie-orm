@@ -1,14 +1,13 @@
-'use strict'; 'use strong';
+/**
+ * @module $Fields.js
+ * @author Joe Groseclose <@benderTheCrime>
+ * @date 8/23/2015
+ */
 
 // System Modules
 import util from                'util';
 import {magenta, cyan} from     'chalk';
 import $LogProvider from        'angie-log';
-
-// Angie ORM Modules
-// import {
-//     $$InvalidModelConfigError
-// } from                          '../util/$ExceptionsProvider';
 
 const p = process;
 
