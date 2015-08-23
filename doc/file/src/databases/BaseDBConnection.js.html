@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <base data-ice="baseUrl" href="../../../">
+  <title data-ice="title">src/databases/BaseDBConnection.js | API Document</title>
+  <link type="text/css" rel="stylesheet" href="css/style.css">
+  <link type="text/css" rel="stylesheet" href="css/prettify-tomorrow.css">
+  <script src="script/prettify/prettify.js"></script>
+  
+  
+</head>
+<body class="layout-container">
+
+<header>
+  <a href="./">Home</a>
+  <a href="identifiers.html">Identifier</a>
+  <a href="source.html">Source</a>
+  
+  <a data-ice="repoURL" href="https://github.com/benderTheCrime/angie-orm.git" class="repo-url-github">Repository</a>
+  <div class="search-box">
+  <span>
+    <img src="./image/search.png">
+    <span class="search-input-edge"></span><input class="search-input"><span class="search-input-edge"></span>
+  </span>
+    <ul class="search-result"></ul>
+  </div>
+</header>
+
+<nav class="navigation" data-ice="nav"><div data-ice="classWrap">
+  <h2>Class</h2>
+  <ul>
+    
+  <li data-ice="classDoc"><span><a href="class/src/util/$ExceptionsProvider.js~$$InvalidConfigError.html">$$InvalidConfigError</a></span></li>
+<li data-ice="classDoc"><span><a href="class/src/models/$Fields.js~BaseField.html">BaseField</a></span></li>
+<li data-ice="classDoc"><span><a href="class/src/models/BaseModel.js~BaseModel.html">BaseModel</a></span></li>
+<li data-ice="classDoc"><span><a href="class/src/databases/FirebaseConnection.js~FirebaseConnection.html">FirebaseConnection</a></span></li>
+<li data-ice="classDoc"><span><a href="class/src/databases/MongoDBConnection.js~MongoDBConnection.html">MongoDBConnection</a></span></li>
+<li data-ice="classDoc"><span><a href="class/src/databases/MySqlConnection.js~MySqlConnection.html">MySqlConnection</a></span></li>
+<li data-ice="classDoc"><span><a href="class/src/databases/SqliteConnection.js~SqliteConnection.html">SqliteConnection</a></span></li>
+</ul>
+</div>
+
+
+
+<div data-ice="functionWrap">
+  <h2><a href="function/">Function</a></h2>
+  <ul>
+    
+  <li data-ice="functionDoc"><span><a href="function/index.html#static-function-AngieDatabaseRouter">AngieDatabaseRouter</a></span></li>
+<li data-ice="functionDoc"><span><a href="function/index.html#static-function-Base">Base</a></span></li>
+<li data-ice="functionDoc"><span><a href="function/index.html#static-function-runTests">runTests</a></span></li>
+</ul>
+</div>
+
+
+
+
+
+
+</nav>
+
+<div class="content" data-ice="content"><h1 data-ice="title">src/databases/BaseDBConnection.js</h1>
+<pre class="source-code line-number"><code class="prettyprint linenums" data-ice="content">/**
+ * @module BaseDBConnection.js
+ * @author Joe Groseclose &lt;@benderTheCrime&gt;
+ * @date 8/23/2015
+ */
+
+// System Modules
+import util from                        &apos;util&apos;;
+import {cyan} from                      &apos;chalk&apos;;
+import $LogProvider from                &apos;angie-log&apos;;
+
+// Angie ORM Modules
+import {
+    $$InvalidModelReferenceError,
+    $$InvalidModelFieldReferenceError,
+    $$InvalidRelationCrossReferenceError
+} from                                  &apos;../util/$ExceptionsProvider&apos;;
+
+// Keys we do not necessarily want to parse as query arguments
+const p = process,
+      IGNORE_KEYS = [
+          &apos;database&apos;,
+          &apos;tail&apos;,
+          &apos;head&apos;,
+          &apos;rows&apos;,
+          &apos;values&apos;,
+          &apos;model&apos;
+      ];
+
+/**
+ * @desc BaseDBConnection is a private class which is not exposed to the Angie
+ * provider. It contains all of the methods quintessential to making DB queries
+ * regardless of DB vehicle. Some of the methods in this class are specific to
+ * SQL type DBs and will need to be replaced when subclassed. This should be the
+ * base class used for each DB type
+ * @since 0.2.3
+ * @access private
+ */
+class BaseDBConnection {
+
+    /**
+     * @param {object} database The database object to which the connection is
+     * being made
+     * @param {boolean} destructive Should destructive migrations be run?
+     */
+    constructor(database, destructive = false, dryRun = false) {
+        this.database = database;
+        this.destructive = destructive;
+        this.dryRun = dryRun;
+    }
+    models() {
+        return this._models;
+    }
+    all(args = {}, fetchQuery = &apos;&apos;, filterQuery = &apos;&apos;) {
+        if (!args.model || !args.model.name) {
+            throw new $$InvalidModelReferenceError();
+        }
+
+        let values = &apos;*&apos;;
+        if (typeof args.values === &apos;object&apos; &amp;&amp; args.values.length) {
+            values = args.values;
+            if (values.indexOf(&apos;id&apos;) === -1) {
+                values.unshift(&apos;id&apos;);
+            }
+        }
+
+        return `SELECT ${values} FROM ${args.model.name}` +
+            `${filterQuery ? ` WHERE ${filterQuery}` : &apos;&apos;}` +
+            `${fetchQuery ? ` ${fetchQuery}` : &apos;&apos;};`;
+    }
+    fetch(args = {}, filterQuery = &apos;&apos;) {
+        let ord = &apos;ASC&apos;;
+
+        if (
+            (args.head &amp;&amp; args.head === false) ||
+            (args.tail &amp;&amp; args.tail === true)
+        ) {
+            ord = &apos;DESC&apos;;
+        }
+
+        const int = args.rows || 1,
+              fetchQuery = `ORDER BY id ${ord} LIMIT ${int}`;
+        return this.all(args, fetchQuery, filterQuery);
+    }
+    filter(args = {}) {
+        return this.fetch(args, this.$$filterQuery(args));
+    }
+
+    /**
+     * @desc _fitlerQuery builds the &quot;WHERE&quot; statements of queries. It is
+     * responsible for parsing all query conditions
+     * @since 0.2.2
+     * @param {object} args Object representation of the arguments
+     * @param {string} args.key Name and value/conditions of field to be parsed.
+     * Values can be prefixed with the following comparators:
+     *     &quot;~&quot;: &quot;Like&quot;, &gt;, &gt;=, &lt;, &lt;=
+     * @param {object|Array&lt;&gt;} args.values Fields for an &quot;in&quot; query
+     * @returns {string} A query string to be passed to the performed query
+     * @access private
+     */
+    $$filterQuery(args) {
+        let filterQuery = [],
+            fn = function(k, v) {
+
+                // If we&apos;re dealing with a number...
+                if (typeof v === &apos;number&apos;) {
+                    return `${k}=${v}`;
+                } else if (v.indexOf(&apos;~&apos;) &gt; -1) {
+
+                    // If there is a like operator, add a like phrase
+                    return `${k} like &apos;%${v.replace(/~/g, &apos;&apos;)}%&apos;`;
+                } else if (
+                    /(&lt;=?|&gt;=?)[^&lt;&gt;=]+/.test(v) &amp;&amp;
+                    v.indexOf(&apos;&gt;&gt;&apos;) === -1 &amp;&amp;
+                    v.indexOf(&apos;&lt;&lt;&apos;) === -1
+                ) {
+
+                    // If there is a condition, parse it, use as operator
+                    // ^^ TODO there has to be a better way to do that condition
+                    return v.replace(/(&lt;=?|&gt;=?)([^&lt;&gt;=]+)/, function(m, p, v) {
+                        return `${k}${p}${!isNaN(v) ? v : `&apos;${v}&apos;` }`;
+                    });
+                }
+
+                // Otherwise, return equality
+                return `${k}=&apos;${v.replace(/[&lt;&gt;=]*/g, &apos;&apos;)}&apos;`;
+            };
+        for (let key in args) {
+            if (IGNORE_KEYS.indexOf(key) &gt; -1) {
+                continue;
+            }
+            if (args[ key ] &amp;&amp; typeof args[ key ] !== &apos;object&apos;) {
+                filterQuery.push(fn(key, args[ key ]));
+            } else {
+                filterQuery.push(`${key} in ${this.$$queryInString(args[ key ])}`);
+            }
+        }
+        return filterQuery.length ? `${filterQuery.join(&apos; AND &apos;)}` : &apos;&apos;;
+    }
+    create(args = {}) {
+        let keys = Object.keys(args),
+            queryKeys = [],
+            values = [];
+
+        if (!args.model || !args.model.name) {
+            throw new $$InvalidModelReferenceError();
+        }
+
+        keys.forEach(function(key) {
+            if (IGNORE_KEYS.indexOf(key) === -1) {
+                queryKeys.push(key);
+                values.push(`&apos;${args[key]}&apos;`);
+            }
+        });
+
+        return `INSERT INTO ${args.model.name} (${queryKeys.join(&apos;, &apos;)}) ` +
+            `VALUES (${values.join(&apos;, &apos;)});`;
+    }
+    delete(args = {}) {
+        return `DELETE FROM ${args.model.name} WHERE ${this.$$filterQuery(args)};`;
+    }
+    update(args = {}) {
+        if (!args.model || !args.model.name) {
+            throw new $$InvalidModelReferenceError();
+        }
+
+        let filterQuery = this.$$filterQuery(args),
+            idSet = this.$$queryInString(args.rows, &apos;id&apos;);
+        if (!filterQuery) {
+            $LogProvider.warn(&apos;No filter query in UPDATE statement.&apos;);
+        } else {
+            return `UPDATE ${args.model.name} SET ${filterQuery} WHERE id in ${idSet};`;
+        }
+    }
+
+    /**
+     * @desc $$queryInString builds any &quot;in&quot; query statements in the query
+     * arguments
+     * @since 0.2.2
+     * @param {object} args Object representation of the arguments
+     * @param {string} args.key Name and value/conditions of field to be parsed
+     * @param {object|Array&lt;&gt;} args.values Fields for an &quot;in&quot; query
+     * @param {string} key The name of the key to parse for &quot;in&quot; arguments
+     * @returns {string} A query string to be passed to the performed query
+     * @access private
+     */
+    $$queryInString(args = {}, key) {
+        let fieldSet = [];
+        if (key) {
+            args.forEach(function(row) {
+                fieldSet.push(`&apos;${row[ key ]}&apos;`);
+            });
+        } else if (args instanceof Array) {
+            fieldSet = args.map((v) =&gt; `&apos;${v}&apos;`);
+        }
+        return `(${fieldSet.length ? fieldSet.join(&apos;,&apos;) : &apos;&apos;})`;
+    }
+    sync() {
+        let me = this;
+
+        // Every instance of sync needs a registry of the models, which implies
+        return global.app.$$load().then(function() {
+            me._models = global.app.Models;
+            $LogProvider.info(
+                `Synccing database: ${cyan(me.database.name || me.database.alias)}`
+            );
+        });
+    }
+    migrate() {
+        let me = this;
+
+        // Every instance of sync needs a registry of the models, which implies
+        return global.app.$$load().then(function() {
+            me._models = global.app.Models;
+            $LogProvider.info(
+                `Migrating database: ${cyan(me.database.name || me.database.alias)}`
+            );
+        });
+    }
+    $$queryset(model = {}, query, rows = [], errors) {
+        const queryset = new AngieDBObject(this, model, query);
+        let results = [],
+            manyToManyFieldNames = [],
+            rels = [],
+            relFieldNames = {},
+            relArgs = {},
+            proms = [];
+
+        for (let key in model) {
+            let field = model[ key ];
+            if (field.type &amp;&amp; field.type === &apos;ManyToManyField&apos;) {
+                manyToManyFieldNames.push(key);
+            }
+        }
+
+        if (rows instanceof Array) {
+            rows.forEach(function(v) {
+
+                // Create a copy to be added to the raw results set
+                let $v = util._extend({}, v);
+
+                // Add update method to row to allow the single row to be
+                // updated
+                v.update = queryset.$$update.bind(queryset, v);
+
+                for (let key of manyToManyFieldNames) {
+                    const field = model[ key ],
+                          many = v[ key ] = {};
+                    for (let method of [ &apos;add&apos;, &apos;remove&apos; ]) {
+                        many[ method ] =
+                            queryset.$$addOrRemove.bind(
+                                queryset,
+                                method,
+                                field,
+                                v.id
+                            );
+                    }
+                    for (let method of [ &apos;all&apos;, &apos;fetch&apos;, &apos;filter&apos; ]) {
+                        many[ method ] = queryset.$$readMethods.bind(
+                            queryset,
+                            method,
+                            field,
+                            v.id
+                        );
+                    }
+                }
+
+                // Find all of the foreign key fields
+                for (let key in v) {
+                    const field = model[ key ];
+                    if (field &amp;&amp; (
+                            field.nesting === true ||
+                            field.deepNesting === true
+                        )
+                    ) {
+                        rels.push(field.rel);
+                        relFieldNames[ field.rel ] = key;
+                        relArgs[ field.rel ] = rows.map((v) =&gt; v.id);
+                    }
+                }
+
+                results.push($v);
+            });
+        }
+
+        // Add update method to row set so that the whole queryset can be
+        // updated
+        rows.update = queryset.$$update.bind(queryset, rows);
+
+        // Remove reference methods
+        delete queryset.$$update;
+        delete queryset.$$addOrRemove;
+        delete queryset.$$readMethods;
+
+        // Instantiate a promise for each of the foreign key fields in the query
+        rels.forEach(function(v) {
+
+            // Reference the relative object
+            proms.push(global.app.Models[ v ].filter({
+                database: model.$$database.name,
+                id: relArgs[ v ]
+            }).then(function(queryset) {
+
+                // Add errors to queryset errors
+                if (errors === null) {
+                    errors = [];
+                }
+
+                // Add any errors to the queryset
+                errors.push(queryset.errors);
+
+                rows.forEach(function(row, i) {
+                    queryset.forEach(function(queryrow) {
+                        if (
+                            !isNaN(+row[ relFieldNames[ v ] ]) &amp;&amp;
+                            queryrow.hasOwnProperty(&apos;id&apos;) &amp;&amp;
+                            row[ relFieldNames[ v ] ] === queryrow.id
+                        ) {
+
+                            // Assign the nested row
+                            results[ i ][ relFieldNames[ v ] ] =
+                                queryset.results[ i ];
+                            row[ relFieldNames[ v ] ] = queryrow;
+                        } else {
+                            results[ i ][ relFieldNames[ v ] ] =
+                                row[ relFieldNames[ v ] ] = null;
+                        }
+                    });
+                });
+            }));
+        });
+
+        return Promise.all(proms).then(function() {
+
+            // Resolves to a value in the connections currently
+            return util._extend(
+                rows,
+                {
+
+                    // The raw query results
+                    results: results,
+
+                    // Any errors
+                    errors: errors,
+
+                    first: AngieDBObject.prototype.first,
+                    last: AngieDBObject.prototype.last
+                },
+                queryset
+            );
+        });
+    }
+    $$name(modelName) {
+        modelName = modelName.replace(/([A-Z])/g, &apos;_$1&apos;).toLowerCase();
+        if (modelName.charAt(0) === &apos;_&apos;) {
+            modelName = modelName.slice(1, modelName.length);
+        }
+        return modelName;
+    }
+}
+
+class AngieDBObject {
+    constructor(database, model, query = &apos;&apos;) {
+        if (!database || !model) {
+            return;
+        }
+        this.database = database;
+        this.model = model;
+        this.query = query;
+    }
+    first() {
+        return this[0];
+    }
+    last() {
+        return this.pop();
+    }
+    $$update(rows, args = {}) {
+
+        // This should only be called internally, so it&apos;s not a huge hack:
+        // rows either references the whole queryset or just a single row
+        args.rows = rows instanceof Array ? rows : [ rows ];
+        args.model = this.model;
+
+        if (typeof args !== &apos;object&apos;) {
+            return;
+        }
+
+        let updateObj = {};
+        for (let key in args) {
+            const val = args[ key ] || null;
+            if (IGNORE_KEYS.indexOf(key) &gt; -1) {
+                continue;
+            } else if (
+                this.model[ key ] &amp;&amp;
+                this.model[ key ].validate &amp;&amp;
+                this.model[ key ].validate(val)
+            ) {
+                updateObj[ key ] = val;
+            } else {
+                throw new $$InvalidModelFieldReferenceError(this.model.name, key);
+            }
+        }
+
+        util._extend(args, updateObj);
+        return this.database.update(args);
+    }
+    $$addOrRemove(method, field, id, obj = {}, extra = {}) {
+        switch (method) {
+            case &apos;add&apos;:
+                method = &apos;$createUnlessExists&apos;;
+                break;
+            default: // &apos;remove&apos;
+                method = &apos;delete&apos;;
+        }
+
+        // Get database, other extra options
+        obj = util._extend(obj, extra);
+
+        // Check to see that there is an existing related object
+        return global.app.Models[ field.rel ].exists(obj).then(function(v) {
+
+            // Check to see if a reference already exists &lt;-&gt;
+            if (v) {
+                let $obj = util._extend({
+                    [ `${field.name}_id`]: id,
+                    [ `${field.rel}_id` ]: obj.id
+                }, extra);
+                return field.crossReferenceTable[ method ]($obj);
+            }
+            throw new Error();
+        }).catch(function() {
+            throw new $$InvalidRelationCrossReferenceError(method, field, id, obj);
+        });
+    }
+    $$readMethods(method, field, id, args = {}) {
+        args = util._extend(args, {
+            [ `${field.name}_id` ]: id,
+            values: [ `${field.rel}_id` ]
+        });
+        method = [ &apos;filter&apos;, &apos;fetch&apos; ].indexOf(method) &gt; -1 ? method : &apos;filter&apos;;
+        return field.crossReferenceTable[ method ](args);
+    }
+}
+
+class $$DatabaseConnectivityError extends Error {
+    constructor(database) {
+        let message;
+        switch (database.type) {
+            case &apos;mysql&apos;:
+                message = &apos;Could not find MySql database &apos; +
+                    `${cyan(database.name || database.alias)}@` +
+                    `${database.host || &apos;127.0.0.1&apos;}:${database.port || 3306}`;
+                break;
+            default:
+                message = `Could not find ${cyan(database.name)} in filesystem.`;
+        }
+        $LogProvider.error(message);
+        super();
+        p.exit(1);
+    }
+}
+
+export default BaseDBConnection;
+export {$$DatabaseConnectivityError};
+</code></pre>
+</div>
+
+<footer class="footer">
+  Generated by <a href="https://esdoc.org">ESDoc<span data-ice="esdocVersion">(0.1.2)</span></a>
+</footer>
+
+<script src="script/search_index.js"></script>
+<script src="script/search.js"></script>
+<script src="script/pretty-print.js"></script>
+<script src="script/inherited-summary.js"></script>
+<script src="script/test-summary.js"></script>
+<script src="script/inner-link.js"></script>
+<script src="script/patch-for-local.js"></script>
+</body>
+</html>

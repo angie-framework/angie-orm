@@ -1,12 +1,10 @@
 ## Angie ORM
-*Note: This project is in Beta.*
 
-<!-- TODO add badges -->
-<!-- ![build status](https://travis-ci.org/benderTheCrime/angie-orm.svg?branch=master "build status")
+![build status](https://travis-ci.org/benderTheCrime/angie-orm.svg?branch=master "build status")
 ![iojs support](https://img.shields.io/badge/iojs-1.7.1+-brightgreen.svg "iojs support")
 ![node support](https://img.shields.io/badge/node-0.12.0+-brightgreen.svg "node support")
 ![code coverage](https://rawgit.com/benderTheCrime/angie-orm/master/svg/coverage.svg "code coverage")
-![npm downloads](https://img.shields.io/npm/dm/angie-orm.svg "npm downloads") -->
+![npm downloads](https://img.shields.io/npm/dm/angie-orm.svg "npm downloads")
 
 [![NPM](https://nodei.co/npm/angie-orm.png?downloads=true&downloadRank=true&stars=true)](https://nodei.co/npm/angie-orm/)
 
@@ -31,7 +29,7 @@ Building databases is easy! In a file called `AngieORMFile.json`:
     }
 }
 ```
-You can make models in several vays
+You can make models in several ways
 ```
 global.app.Model('test', function($Fields) {
     let obj = {};
@@ -125,4 +123,4 @@ Create/Update queries require all non nullable fields to have a value in the arg
 
 Update queries are available on the entire queryset as well as each row. Additionally, methods to retrieve the `first` and `last` row in the returned records are available. Many to many fields have the added functionality of fetching `all` related rows, `fetch`ing, `filtering` related rows, and `add`ing, and `removing` related rows. The arguments to these methods must be existing related database objects.
 
-Please see the [site](http://benderthecrime.github.io/angie/#/about) for news, a quickstart guide, and documentation and the [CHANGELOG](https://github.com/benderTheCrime/angie/blob/master/CHANGELOG.md) for an up to date list of changes.
+For a list of Frequently Asked Questions, please see the [FAQ](https://github.com/benderTheCrime/angie-orm/blob/master/FAQ.md "FAQ"). Please see the [site](http://benderthecrime.github.io/angie "site") for a quickstart guide and the [CHANGELOG](https://github.com/benderTheCrime/angie/blob/master/CHANGELOG.md) for an up to date list of changes. Contributors to this Project are outlined in the [CONTRIBUTORS](https://github.com/benderTheCrime/angie/blob/master/CONTRIBUTORS.md "CONTRIBUTORS") file.

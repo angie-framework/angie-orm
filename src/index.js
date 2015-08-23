@@ -1,7 +1,8 @@
-'use strict'; 'use strong';
-
-// Global Modules
-import {transform} from             'babel';
+/**
+ * @module index.js
+ * @author Joe Groseclose <@benderTheCrime>
+ * @date 8/23/2015
+ */
 
 // System Modules
 import {exec} from                  'child_process';
@@ -12,11 +13,8 @@ import $LogProvider from            'angie-log';
 import './Angie';
 
 // Angie ORM Modules
-import AngieDatabaseRouter from     './models/AngieDatabaseRouter';
+import AngieDatabaseRouter from     './databases/AngieDatabaseRouter';
 import * as $$FieldProvider from    './models/$Fields';
-
-// Tranform BabelJS options
-transform('code', { stage: 0 });
 
 const p = process;
 let args = [];
