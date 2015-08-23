@@ -1,9 +1,13 @@
-'use strict'; 'use strong';
+/**
+ * @module Angie.js
+ * @author Joe Groseclose <@benderTheCrime>
+ * @date 8/23/2015
+ */
 
 // System Modules
 import util from                    'util';
 import {blue} from                  'chalk';
-import $LogProvider from            'angie-log';
+import $LogProvider from            'angie-log-dist';
 
 // Angie ORM Modules
 import BaseModel from               './models/BaseModel';

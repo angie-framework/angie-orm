@@ -1,4 +1,8 @@
-'use strict'; 'use strong';
+/**
+ * @module FirebaseConnection.js
+ * @author Joe Groseclose <@benderTheCrime>
+ * @date 8/23/2015
+ */
 
 // import BaseDBConnection from './BaseDBConnection';
 // import $LogProvider from 'angie-log/src/services/$LogProvider';

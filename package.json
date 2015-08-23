@@ -4,7 +4,7 @@
   "author": "Joe Groseclose <@benderTheCrime>",
   "description": "A flexible, Promise-based ORM for the Angie MVC",
   "license": "MIT",
-  "main": "src/index.js",
+  "main": "dist/index.js",
   "private": false,
   "preferGlobal": true,
   "scripts": {
@@ -18,7 +18,8 @@
     "node": "*"
   },
   "bin": {
-    "angie-orm": "bin/angie-orm"
+    "angie-orm": "bin/angie-orm",
+    "angie-orm-dist": "bin/angie-orm-dist"
   },
   "repository": {
     "type": "git",
@@ -38,11 +39,12 @@
     "Database"
   ],
   "devDependencies": {
+    "argv": "0.0.2",
     "babel-eslint": "^3.1.17",
     "chai": "2.3.0",
     "esdoc": "0.1.2",
     "gulp": "3.9.0",
-    "gulp-babel": "^5.1.0",
+    "gulp-babel": "^5.2.1",
     "gulp-cli": "0.2.0",
     "gulp-eslint": "0.12.0",
     "gulp-istanbul": "0.9.0",

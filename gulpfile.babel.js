@@ -1,27 +1,32 @@
-'use strict'; 'use strong';
-
-require('babel/register')({
-    only: [ '**/node_modules/angie*/**', '**/src/**' ],
+import {default as register} from   'babel-core/register';
+register({
+    only: [
+        '**/node_modules/angie*/**',
+        '**/src/**'
+    ],
     stage: 0
 });
 
 // System Modules
-import gulp from                'gulp';
-import {exec} from              'child_process';
-import eslint from              'gulp-eslint';
-import jscs from                'gulp-jscs';
-import istanbul from            'gulp-istanbul';
-import {Instrumenter} from      'isparta';
-import mocha from               'gulp-mocha';
-import cobertura from           'istanbul-cobertura-badger';
+import gulp from                    'gulp';
+import {argv} from                  'yargs';
+import {exec} from                  'child_process';
+import eslint from                  'gulp-eslint';
+import jscs from                    'gulp-jscs';
+import istanbul from                'gulp-istanbul';
+import {Instrumenter} from          'isparta';
+import mocha from                   'gulp-mocha';
+import cobertura from               'istanbul-cobertura-badger';
+import babel from                   'gulp-babel';
 
-const src = 'src/**/*.js',
-      testSrc = 'test/**/*.spec.js',
-      docSrc = 'doc',
-      coverageDir = 'coverage';
+const SRC = 'src/**/*.js',
+    TRANSPILED_SRC = 'dist'
+    TEST_SRC = 'test/**/*.spec.js',
+    DOC_SRC = 'doc',
+    COVERAGE_SRC = 'coverage';
 
 gulp.task('eslint', function () {
-    gulp.src([ src, testSrc ]).pipe(
+    gulp.src([ SRC, TEST_SRC ]).pipe(
         eslint()
     ).pipe(
         eslint.format()
@@ -30,7 +35,7 @@ gulp.task('eslint', function () {
     );
 });
 gulp.task('jscs', [ 'eslint' ], function () {
-    return gulp.src([ src, testSrc ])
+    return gulp.src([ SRC, TEST_SRC ])
         .pipe(jscs({
             fix: true,
             configPath: '.jscsrc',
@@ -39,8 +44,8 @@ gulp.task('jscs', [ 'eslint' ], function () {
 });
 gulp.task('mocha', function(cb) {
     let proc;
-    new Promise(function(resolve, reject) {
-        proc = gulp.src(src).pipe(
+    new Promise(function(resolve) {
+        proc = gulp.src(SRC).pipe(
             istanbul({
                 instrumenter: Instrumenter,
                 includeUntested: true
@@ -54,7 +59,7 @@ gulp.task('mocha', function(cb) {
             ).pipe(mocha({
                 reporter: 'spec'
             }).on('error', function(e) {
-                resolve();
+                throw new Error(e);
             }).on('end', function() {
                 resolve();
             }));
@@ -71,14 +76,31 @@ gulp.task('mocha', function(cb) {
         return cobertura('coverage/cobertura-coverage.xml', 'svg', cb);
     });
 });
+gulp.task('babel', function() {
+    return gulp.src(SRC).pipe(babel()).pipe(gulp.dest(TRANSPILED_SRC));
+});
 gulp.task('esdoc', function(cb) {
     exec('esdoc -c esdoc.json', cb);
 });
+gulp.task('bump', function(cb) {
+    const version = argv.version,
+        bump = (f) => fs.writeFileSync(f, fs.readFileSync(f, 'utf8').replace(
+            /[0-9]{1,2}\.[0-9]{1,2}\.[0-9]{1,2}/,
+            version
+        ));
+    if (version) {
+        bump('bin/angie-orm');
+        bump('bin/angie-orm-dist');
+        bump('package.json');
+    } else {
+        throw new Error(bold(red('No version specified!!')));
+    }
+});
 gulp.task('watch', [ 'jscs', 'mocha' ], function() {
-    gulp.watch([ src, testSrc, '../gh-pages-angie/**' ], [ 'mocha' ]);
+    gulp.watch([ SRC, TEST_SRC ], [ 'mocha' ]);
 });
 gulp.task('watch:mocha', [ 'jscs', 'mocha' ], function() {
-    gulp.watch([ src, testSrc, '../gh-pages-angie/**' ], [ 'mocha' ]);
+    gulp.watch([ SRC, TEST_SRC ], [ 'mocha' ]);
 });
 gulp.task('test', [ 'jscs', 'mocha' ]);
-gulp.task('default', [ 'jscs', 'mocha' ]);
+gulp.task('default', [ 'jscs', 'mocha', 'babel', 'esdoc' ]);

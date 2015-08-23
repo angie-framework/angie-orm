@@ -1,4 +1,8 @@
-'use strict'; 'use strong';
+/**
+ * @module SqliteConnection.js
+ * @author Joe Groseclose <@benderTheCrime>
+ * @date 8/23/2015
+ */
 
 // System Modules
 import fs from                          'fs';

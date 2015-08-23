@@ -1,4 +1,8 @@
-'use strict'; 'use strong';
+/**
+ * @module index.js
+ * @author Joe Groseclose <@benderTheCrime>
+ * @date 8/23/2015
+ */
 
 // Global Modules
 import {transform} from             'babel';
