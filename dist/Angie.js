@@ -17,9 +17,9 @@ var _util2 = _interopRequireDefault(_util);
 
 var _chalk = require('chalk');
 
-var _angieLogDist = require('angie-log-dist');
+var _angieLog = require('angie-log');
 
-var _angieLogDist2 = _interopRequireDefault(_angieLogDist);
+var _angieLog2 = _interopRequireDefault(_angieLog);
 
 // Angie ORM Modules
 
@@ -50,7 +50,7 @@ if (global.app) {
                 this.$$registry[name] = 'Models';
                 this.Models[name] = obj;
             } else {
-                _angieLogDist2['default'].warn('Invalid name or object called on app.$register');
+                _angieLog2['default'].warn('Invalid name or object called on app.$register');
             }
             return this;
         },
@@ -91,9 +91,9 @@ if (global.app) {
                 }).forEach(function (v) {
                     try {
                         require(v);
-                        _angieLogDist2['default'].info('Successfully loaded file ' + (0, _chalk.blue)(v));
+                        _angieLog2['default'].info('Successfully loaded file ' + (0, _chalk.blue)(v));
                     } catch (e) {
-                        _angieLogDist2['default'].error(e);
+                        _angieLog2['default'].error(e);
                     }
                 });
 
@@ -105,7 +105,7 @@ if (global.app) {
         $$loaded: false
     };
     app.$Fields = $$FieldProvider;
-    app.services.$Log = _angieLogDist2['default'];
+    app.services.$Log = _angieLog2['default'];
     app.$$registry.$Log = 'services';
 }
 
