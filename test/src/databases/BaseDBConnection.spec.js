@@ -9,7 +9,7 @@ describe('BaseDBConnection', function() {
     beforeEach(function() {
         base = new BaseDBConnection({});
     });
-    describe('_filterQuery', function() {
+    describe('$$filterQuery', function() {
         it('test query arguments in IGNORE_KEYS are actually ignored', function() {
             expect(base.$$filterQuery({
                 database: 'test'
