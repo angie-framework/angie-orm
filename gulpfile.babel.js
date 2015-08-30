@@ -20,6 +20,9 @@ import mocha from                   'gulp-mocha';
 import cobertura from               'istanbul-cobertura-badger';
 import esdoc from                   'gulp-esdoc';
 import babel from                   'gulp-babel';
+import {bold, red} from             'chalk';
+
+const bread = (str) => bold(red(str));
 
 const SRC_DIR = 'src',
     SRC = `${SRC}/**/*.js`,
@@ -81,7 +84,9 @@ gulp.task('mocha', function(cb) {
     });
 });
 gulp.task('babel', function() {
-    return gulp.src('src/**').pipe(babel()).pipe(gulp.dest('dist'));
+    return gulp.src('src/**').pipe(babel({
+        comments: false
+    })).pipe(gulp.dest('dist'));
 });
 gulp.task('esdoc', function() {
     return gulp.src(SRC_DIR).pipe(esdoc({ destination: DOC_SRC }));
