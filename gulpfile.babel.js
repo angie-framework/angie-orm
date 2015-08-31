@@ -32,6 +32,7 @@ const SRC_DIR = 'src',
     DOC_SRC = 'doc',
     COVERAGE_SRC = 'coverage';
 
+// Build Tasks
 gulp.task('eslint', function () {
     gulp.src([ SRC, TEST_SRC ]).pipe(
         eslint()
@@ -49,7 +50,7 @@ gulp.task('jscs', [ 'eslint' ], function () {
             esnext: true
         }));
 });
-gulp.task('istanbul', function(cb) {
+gulp.task('istanbul', [ 'jscs' ], function(cb) {
     gulp.src('src/**/*.js').pipe(istanbul({
         instrumenter: Instrumenter,
         includeUntested: true,
@@ -58,8 +59,8 @@ gulp.task('istanbul', function(cb) {
         }
     })).pipe(istanbul.hookRequire()).on('finish', cb);
 });
-gulp.task('mocha', [ 'istanbul' ], function(cb) {
-    gulp.src([
+gulp.task('mocha', [ 'istanbul' ], function() {
+    return gulp.src([
         'test/src/testUtil.spec.js',
         'test/**/*.spec.js'
     ]).pipe(mocha({
@@ -70,18 +71,29 @@ gulp.task('mocha', [ 'istanbul' ], function(cb) {
             dir: 'coverage'
         },
         reporters: [ 'text', 'text-summary', 'html', 'cobertura' ]
-    }).on('finish', function() {
-        return cobertura('coverage/cobertura-coverage.xml', 'svg', cb);
     }));
 });
-gulp.task('babel', function() {
+gulp.task('cobertura', [ 'mocha' ], function(cb) {
+    cobertura('coverage/cobertura-coverage.xml', 'svg', cb);
+});
+
+gulp.task('esdoc', [ 'cobertura' ], function() {
+    return gulp.src(SRC_DIR).pipe(esdoc({ destination: DOC_SRC }));
+});
+gulp.task('babel', [ 'esdoc' ], function() {
     return gulp.src('src/**').pipe(babel({
         comments: false
     })).pipe(gulp.dest('dist'));
 });
-gulp.task('esdoc', function() {
-    return gulp.src(SRC_DIR).pipe(esdoc({ destination: DOC_SRC }));
+
+// Bundled Tasks
+gulp.task('test', [ 'mocha' ]);
+gulp.task('watch', [ 'test' ], function() {
+    gulp.watch([ SRC, TEST_SRC ], [ 'test' ]);
 });
+gulp.task('default', [ 'babel' ]);
+
+// Utility Tasks
 gulp.task('bump', function() {
     const version = argv.version,
         bump = (f) => fs.writeFileSync(f, fs.readFileSync(f, 'utf8').replace(
@@ -102,8 +114,3 @@ gulp.task('bump', function() {
         throw new Error(bold(red('No version specified!!')));
     }
 });
-gulp.task('watch', [ 'jscs', 'mocha' ], function() {
-    gulp.watch([ SRC, TEST_SRC ], [ 'mocha' ]);
-});
-gulp.task('test', [ 'jscs', 'mocha' ]);
-gulp.task('default', [ 'jscs', 'mocha', 'babel', 'esdoc' ]);
