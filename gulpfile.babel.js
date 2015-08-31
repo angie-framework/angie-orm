@@ -111,6 +111,6 @@ gulp.task('bump', function() {
         bump('bin/angie-orm-dist');
         bump('package.json');
     } else {
-        throw new Error(bold(red('No version specified!!')));
+        throw new Error(bread('No version specified!!'));
     }
 });
