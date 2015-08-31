@@ -9,19 +9,19 @@ register({
 });
 
 // System Modules
-import fs from                              'fs';
-import gulp from                            'gulp';
-import {argv} from                          'yargs';
-import {exec} from                          'child_process';
-import eslint from                          'gulp-eslint';
-import jscs from                            'gulp-jscs';
-import {Instrumenter} from         'isparta';
-import mocha from                           'gulp-mocha';
-import istanbul from                        'gulp-istanbul';
-import cobertura from                       'istanbul-cobertura-badger';
-import esdoc from                           'gulp-esdoc';
-import babel from                           'gulp-babel';
-import {bold, red} from                     'chalk';
+import fs from              'fs';
+import gulp from            'gulp';
+import {argv} from          'yargs';
+import {exec} from          'child_process';
+import eslint from          'gulp-eslint';
+import jscs from            'gulp-jscs';
+import {Instrumenter} from  'isparta';
+import mocha from           'gulp-mocha';
+import istanbul from        'gulp-istanbul';
+import cobertura from       'istanbul-cobertura-badger';
+import esdoc from           'gulp-esdoc';
+import babel from           'gulp-babel';
+import {bold, red} from     'chalk';
 
 const bread = (str) => bold(red(str));
 
@@ -58,8 +58,8 @@ gulp.task('istanbul', function(cb) {
         }
     })).pipe(istanbul.hookRequire()).on('finish', cb);
 });
-gulp.task('mocha', [ 'istanbul' ], function() {
-    return gulp.src([
+gulp.task('mocha', [ 'istanbul' ], function(cb) {
+    gulp.src([
         'test/src/testUtil.spec.js',
         'test/**/*.spec.js'
     ]).pipe(mocha({
@@ -69,7 +69,9 @@ gulp.task('mocha', [ 'istanbul' ], function() {
         reportOpts: {
             dir: 'coverage'
         },
-        reporters: [ 'text', 'text-summary', 'json', 'html' ]
+        reporters: [ 'text', 'text-summary', 'html', 'cobertura' ]
+    }).on('finish', function() {
+        return cobertura('coverage/cobertura-coverage.xml', 'svg', cb);
     }));
 });
 gulp.task('babel', function() {
