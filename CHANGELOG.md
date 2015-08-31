@@ -2,6 +2,15 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+#### [0.0.5] - 2015-08-30
+##### Fixed/Changed
+- Modified the package.json dependencies
+- Improved the gulp build script
+
+#### [0.0.4] - 2015-08-25
+##### Fixed
+- Fixed issues with the npm postinstall script.
+
 #### [0.0.3] - 2015-08-23
 ##### Changed/Removed/Added
 - Changed requirement structure:
