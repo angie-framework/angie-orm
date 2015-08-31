@@ -1,6 +1,6 @@
 {
   "name": "angie-orm",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "author": "Joe Groseclose <@benderTheCrime>",
   "description": "A flexible, Promise-based ORM for the Angie MVC",
   "license": "MIT",
