@@ -2,7 +2,7 @@
   "name": "angie-orm",
   "version": "0.0.5",
   "author": "Joe Groseclose <@benderTheCrime>",
-  "description": "A flexible, Promise-based ORM for the Angie MVC",
+  "description": "An extremely lightweight logging utility for NodeJS",
   "license": "MIT",
   "main": "dist/index.js",
   "private": false,
