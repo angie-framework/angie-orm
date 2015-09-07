@@ -62,7 +62,7 @@ function runTests() {
 
 function help() {
     $LogProvider.bold('Angie ORM');
-    console.log('A flexible, Promise-based ORM for the Angie MVC');
+    console.log('An extremely lightweight logging utility for NodeJS');
     console.log('\r');
     $LogProvider.bold('Version:');
     console.log(global.ANGIE_ORM_VERSION);
