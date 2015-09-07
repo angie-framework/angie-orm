@@ -9,7 +9,7 @@
 [![NPM](https://nodei.co/npm/angie-orm.png?downloads=true&downloadRank=true&stars=true)](https://nodei.co/npm/angie-orm/)
 
 ### About
-Angie ORM is a feature-complete database relationship manager designed for use with NodeJS.
+Angie ORM is a feature-complete database relationship manager designed for NodeJS.
 
 #### Current Database Support
 * MySQL via the [node-mysql](https://github.com/felixge/node-mysql "node-mysql") package
