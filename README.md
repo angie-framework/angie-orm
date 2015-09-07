@@ -27,7 +27,7 @@ npm i -g angie-orm
 angie-orm help
 ```
 Building databases is easy! In a file called `AngieORMFile.json`:
-```
+```json
 {
     "databases": {
         "default": {
@@ -43,7 +43,7 @@ Building databases is easy! In a file called `AngieORMFile.json`:
 }
 ```
 You can make models in several ways
-```
+```javascript
 global.app.Model('test', function($Fields) {
     let obj = {};
     obj.test = new $Fields.CharField({
@@ -68,17 +68,17 @@ class test {
 }
 ```
 These two models are functionally equivalent. To actually build your databases:
-```
+```bash
 angie-orm syncdb [name]
 ```
 Where if no name is specified, the default database will be synced. This will also automatically migrate your database, but a command for migrating databases is also available:
-```
+```bash
 angie-orm syncdb [name] [--destructive]
 ```
 Where destructive will force stale tables and columns to be deleted. All of the above is done for you in your `AngieFile.json` if you are building an Angie application.
 
 The first argument provided the function passed to the model will be $Fields, an object containing all of the available field types. Individual fields can also be required from their source in `angie-orm/src/models/$Fields`:
-```
+```javascript
 import {CharField} from 'angie-orm/src/models/$Fields';
 
 // or
@@ -106,7 +106,7 @@ In that order as arguments or in an Object. Foreign key and many to many fields 
 If you have a need for a Field type that is not included, feel free to make a Pull Request (and follow the current format), or ask.
 
 All queries return a Promise with a queryset
-```
+```javascript
 global.app.Models.test.all().then(function(queryset) {
     return queryset[1].update({
         test: 'test'
