@@ -1,4 +1,4 @@
-![emblem](https://rawgit.com/angie-framework/angie-orm/master/static/images/angie.svg "emblem")
+![emblem](https://rawgit.com/angie-framework/angie-orm/master/svg/angie.svg "emblem")
 
 ## Angie ORM
 
