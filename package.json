@@ -1,6 +1,6 @@
 {
   "name": "angie-orm",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "author": "Joe Groseclose <@benderTheCrime>",
   "description": "A Feature-Complete Database Relationship Manager Designed for NodeJS",
   "license": "MIT",
@@ -39,8 +39,9 @@
     "Database"
   ],
   "devDependencies": {
-    "babel-eslint": "^3.1.17",
+    "babel-eslint": "3.1.17",
     "chai": "2.3.0",
+    "esdoc": "^0.3.1",
     "gulp": "3.9.0",
     "gulp-babel": "^5.2.1",
     "gulp-cli": "0.2.0",
@@ -62,6 +63,6 @@
     "chalk": "1.0.0",
     "firebase": "2.2.4",
     "mysql": "2.6.2",
-    "sqlite3": "3.0.8"
+    "sqlite3": "^3.0.8"
   }
 }

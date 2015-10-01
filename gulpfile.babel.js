@@ -9,21 +9,21 @@ register({
 });
 
 // System Modules
-import fs from              'fs';
-import gulp from            'gulp';
-import {argv} from          'yargs';
-import {exec} from          'child_process';
-import eslint from          'gulp-eslint';
-import jscs from            'gulp-jscs';
-import {Instrumenter} from  'isparta';
-import mocha from           'gulp-mocha';
-import istanbul from        'gulp-istanbul';
-import cobertura from       'istanbul-cobertura-badger';
-import esdoc from           'gulp-esdoc';
-import babel from           'gulp-babel';
-import {bold, red} from     'chalk';
+import fs from                  'fs';
+import gulp from                'gulp';
+import { argv } from            'yargs';
+import {exec} from              'child_process';
+import eslint from              'gulp-eslint';
+import jscs from                'gulp-jscs';
+import { Instrumenter } from    'isparta';
+import mocha from               'gulp-mocha';
+import istanbul from            'gulp-istanbul';
+import cobertura from           'istanbul-cobertura-badger';
+import esdoc from               'gulp-esdoc';
+import babel from               'gulp-babel';
+import { bold, red } from       'chalk';
 
-const bread = (str) => bold(red(str));
+const bread = str => bold(red(str));
 
 const SRC_DIR = 'src',
     SRC = `${SRC}/**/*.js`,
@@ -96,7 +96,7 @@ gulp.task('default', [ 'babel' ]);
 // Utility Tasks
 gulp.task('bump', function() {
     const version = argv.version,
-        bump = (f) => fs.writeFileSync(f, fs.readFileSync(f, 'utf8').replace(
+        bump = f => fs.writeFileSync(f, fs.readFileSync(f, 'utf8').replace(
             /[0-9]{1,2}\.[0-9]{1,2}\.[0-9]{1,2}/,
             version
         ));

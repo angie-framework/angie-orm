@@ -1,10 +1,14 @@
+![emblem](https://rawgit.com/angie-framework/angie-orm/master/static/images/angie.svg "emblem")
+
 ## Angie ORM
 
-![build status](https://travis-ci.org/benderTheCrime/angie-orm.svg?branch=master "build status")
+[![npm version](https://badge.fury.io/js/angie-orm.svg)](http://badge.fury.io/js/angie-orm "npm version")
 ![iojs support](https://img.shields.io/badge/iojs-1.7.1+-brightgreen.svg "iojs support")
 ![node support](https://img.shields.io/badge/node-0.12.0+-brightgreen.svg "node support")
-![code coverage](https://rawgit.com/benderTheCrime/angie-orm/master/svg/coverage.svg "code coverage")
 ![npm downloads](https://img.shields.io/npm/dm/angie-orm.svg "npm downloads")
+![build status](https://travis-ci.org/benderTheCrime/angie-orm.svg?branch=master "build status")
+![code coverage](https://rawgit.com/benderTheCrime/angie-orm/master/svg/coverage.svg "code coverage")
+[![documentation](https://doc.esdoc.org/github.com/angie-framework/angie-orm/badge.svg)](https://doc.esdoc.org/github.com/angie-framework/angie-orm/ "documentation")
 
 [![NPM](https://nodei.co/npm/angie-orm.png?downloads=true&downloadRank=true&stars=true)](https://nodei.co/npm/angie-orm/)
 
