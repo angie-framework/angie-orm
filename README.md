@@ -1,12 +1,29 @@
+![emblem](https://rawgit.com/angie-framework/angie-orm/master/static/images/angie.svg "emblem")
+
 ## Angie ORM
 
-![build status](https://travis-ci.org/benderTheCrime/angie-orm.svg?branch=master "build status")
+[![npm version](https://badge.fury.io/js/angie-orm.svg)](http://badge.fury.io/js/angie-orm "npm version")
 ![iojs support](https://img.shields.io/badge/iojs-1.7.1+-brightgreen.svg "iojs support")
 ![node support](https://img.shields.io/badge/node-0.12.0+-brightgreen.svg "node support")
-![code coverage](https://rawgit.com/benderTheCrime/angie-orm/master/svg/coverage.svg "code coverage")
 ![npm downloads](https://img.shields.io/npm/dm/angie-orm.svg "npm downloads")
+![build status](https://travis-ci.org/benderTheCrime/angie-orm.svg?branch=master "build status")
+![code coverage](https://rawgit.com/benderTheCrime/angie-orm/master/svg/coverage.svg "code coverage")
+[![documentation](https://doc.esdoc.org/github.com/angie-framework/angie-orm/badge.svg)](https://doc.esdoc.org/github.com/angie-framework/angie-orm/ "documentation")
 
 [![NPM](https://nodei.co/npm/angie-orm.png?downloads=true&downloadRank=true&stars=true)](https://nodei.co/npm/angie-orm/)
+
+### About
+Angie ORM is a feature-complete database relationship manager designed for NodeJS.
+
+#### Current Database Support
+* MySQL via the [node-mysql](https://github.com/felixge/node-mysql "node-mysql") package
+* sqlite3 via the [node-sqlite3](https://github.com/mapbox/node-sqlite3 "node-sqlite3") package
+
+#### Planned Database Support
+* Firebase
+* MongoDB
+* Couchbase
+* Postgres
 
 ### Usage
 ```bash
@@ -123,4 +140,7 @@ Create/Update queries require all non nullable fields to have a value in the arg
 
 Update queries are available on the entire queryset as well as each row. Additionally, methods to retrieve the `first` and `last` row in the returned records are available. Many to many fields have the added functionality of fetching `all` related rows, `fetch`ing, `filtering` related rows, and `add`ing, and `removing` related rows. The arguments to these methods must be existing related database objects.
 
-For a list of Frequently Asked Questions, please see the [FAQ](https://github.com/benderTheCrime/angie-orm/blob/master/FAQ.md "FAQ"). Please see the [site](http://benderthecrime.github.io/angie "site") for a quickstart guide and the [CHANGELOG](https://github.com/benderTheCrime/angie/blob/master/CHANGELOG.md) for an up to date list of changes. Contributors to this Project are outlined in the [CONTRIBUTORS](https://github.com/benderTheCrime/angie/blob/master/CONTRIBUTORS.md "CONTRIBUTORS") file.
+For a list of Frequently Asked Questions, please see the [FAQ](https://github.com/benderTheCrime/angie-orm/blob/master/FAQ.md "FAQ") and the [CHANGELOG](https://github.com/benderTheCrime/angie-orm/blob/master/CHANGELOG.md "CHANGELOG") for an up to date list of changes. Contributors to this Project are outlined in the [CONTRIBUTORS](https://github.com/benderTheCrime/angie-orm/blob/master/CONTRIBUTORS.md "CONTRIBUTORS") file.
+
+### Angie
+Please see the [site](http://benderthecrime.github.io/angie/) for information about the project, a quickstart guide, and documentation and the [CHANGELOG](https://github.com/benderTheCrime/angie/blob/master/CHANGELOG.md) for an up to date list of changes.

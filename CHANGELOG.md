@@ -2,8 +2,12 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+#### [0.0.6] - 2015-09-30
+##### Changed
+- Modified README
+
 #### [0.0.5] - 2015-08-30
-##### Fixed/Changed
+##### Changed/Fixed
 - Modified the package.json dependencies
 - Improved the gulp build script
 
@@ -12,7 +16,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Fixed issues with the npm postinstall script.
 
 #### [0.0.3] - 2015-08-23
-##### Changed/Removed/Added
+##### Added/Changed/Removed
 - Changed requirement structure:
     - Removed references to `BaseConnection` where they should not have existed.
     - Separated the database and model dependencies into different directories.
